@@ -1,8 +1,0 @@
-{
-	"SourceFiles": [
-		"C:\\Looter-Shooter\\LooterShooter\\Source\\LooterShooter\\LooterShooter.Build.cs",
-		"C:\\Looter-Shooter\\LooterShooter\\Source\\LooterShooter.Target.cs",
-		"C:\\Looter-Shooter\\LooterShooter\\Source\\LooterShooterEditor.Target.cs"
-	],
-	"EngineVersion": "5.4.4"
-}
