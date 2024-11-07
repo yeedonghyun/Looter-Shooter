@@ -1,0 +1,19 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "c:\\looter-shooter\\lootershooter\\intermediate\\build\\win64\\unrealeditor\\inc\\lootershooter\\uht\\lootershootergamemode.gen.cpp",
+        "ProvidedModule": "",
+        "PCH": "c:\\looter-shooter\\lootershooter\\intermediate\\build\\win64\\x64\\lootershootereditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "Includes": [
+            "c:\\looter-shooter\\lootershooter\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\lootershooter\\definitions.lootershooter.h",
+            "c:\\looter-shooter\\lootershooter\\source\\lootershooter\\lootershootergamemode.h",
+            "c:\\program files\\epic games\\ue_5.4\\engine\\source\\runtime\\engine\\classes\\gameframework\\gamemodebase.h",
+            "c:\\program files\\epic games\\ue_5.4\\engine\\source\\runtime\\engine\\classes\\engine\\serverstatreplicator.h",
+            "c:\\program files\\epic games\\ue_5.4\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\uht\\serverstatreplicator.generated.h",
+            "c:\\program files\\epic games\\ue_5.4\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\uht\\gamemodebase.generated.h",
+            "c:\\looter-shooter\\lootershooter\\intermediate\\build\\win64\\unrealeditor\\inc\\lootershooter\\uht\\lootershootergamemode.generated.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

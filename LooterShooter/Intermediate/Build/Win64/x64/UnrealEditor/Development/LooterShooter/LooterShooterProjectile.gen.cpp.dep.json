@@ -1,0 +1,15 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "c:\\looter-shooter\\lootershooter\\intermediate\\build\\win64\\unrealeditor\\inc\\lootershooter\\uht\\lootershooterprojectile.gen.cpp",
+        "ProvidedModule": "",
+        "PCH": "c:\\looter-shooter\\lootershooter\\intermediate\\build\\win64\\x64\\lootershootereditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "Includes": [
+            "c:\\looter-shooter\\lootershooter\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\lootershooter\\definitions.lootershooter.h",
+            "c:\\looter-shooter\\lootershooter\\source\\lootershooter\\lootershooterprojectile.h",
+            "c:\\looter-shooter\\lootershooter\\intermediate\\build\\win64\\unrealeditor\\inc\\lootershooter\\uht\\lootershooterprojectile.generated.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}
