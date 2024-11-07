@@ -15,7 +15,15 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	UPROPERTY()
+	UUserWidget* MainMenuWidget;
+
+	UPROPERTY()
+	UUserWidget* TitleWidget;
+
 	void ShowMainMenu();
+
+	FTimerHandle TimerHandle;
 
 	static bool bFirstStart;
 };

@@ -15,9 +15,12 @@ void AMainMenuGameModeBase::BeginPlay()
         PlayerController->bEnableMouseOverEvents = true;
     }
 
-}
-
-void AMainMenuGameModeBase::ShowMainMenu()
-{
-
+    if (TSubclassOf<UUserWidget> MainMenuWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_MainMenuUserWidget.BP_MainMenuUserWidget_C'")))
+    {
+        MainMenuWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
+        if (MainMenuWidget)
+        {
+            MainMenuWidget->AddToViewport();
+        }
+    }
 }
