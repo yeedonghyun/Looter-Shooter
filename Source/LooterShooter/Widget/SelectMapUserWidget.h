@@ -10,33 +10,38 @@ UCLASS()
 class LOOTERSHOOTER_API USelectMapUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
 protected:
     virtual void NativeConstruct() override;
 
+public:
+    USelectMapUserWidget(const FObjectInitializer& Object);
+
 private:
+
     UPROPERTY(meta = (BindWidget))
     UButton* Play;
 
     UPROPERTY(meta = (BindWidget))
-    UButton* Storage;
+    UButton* AsianTown;
 
     UPROPERTY(meta = (BindWidget))
-    UButton* Setting;
+    UButton* MilitaryAirport;
 
     UPROPERTY(meta = (BindWidget))
-    UButton* ExitGame;
+    UButton* Back;
 
     UFUNCTION()
     void OnPlayButtonClicked();
 
     UFUNCTION()
-    void OnStorageButtonClicked();
+    void OnAsianTownButtonClicked();
 
     UFUNCTION()
-    void OnSettingButtonClicked();
+    void OnMilitaryAirportButtonClicked();
 
     UFUNCTION()
-    void OnExitGameButtonClicked();
+    void OnBackButtonClicked();
 
     UFUNCTION()
     void OnPlayButtonHovered();
@@ -45,20 +50,24 @@ private:
     void OnPlayButtonUnhovered();
 
     UFUNCTION()
-    void OnStorageButtonHovered();
+    void OnAsianTownButtonHovered();
 
     UFUNCTION()
-    void OnStorageButtonUnhovered();
+    void OnAsianTownButtonUnhovered();
 
     UFUNCTION()
-    void OnSettingButtonHovered();
+    void OnMilitaryAirportButtonHovered();
 
     UFUNCTION()
-    void OnSettingButtonUnhovered();
+    void OnMilitaryAirportButtonUnhovered();
 
     UFUNCTION()
     void OnExitButtonHovered();
 
     UFUNCTION()
     void OnExitButtonUnhovered();
+
+private:
+    int MapIndex;
+    FLinearColor color;
 };

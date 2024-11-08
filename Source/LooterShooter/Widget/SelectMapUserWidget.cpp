@@ -1,6 +1,12 @@
 #include "SelectMapUserWidget.h"
 #include "Kismet/GameplayStatics.h"
 
+USelectMapUserWidget::USelectMapUserWidget(const FObjectInitializer& Object) : Super(Object)
+{
+    MapIndex = 0;
+    color = FLinearColor::White;
+}
+
 void USelectMapUserWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -12,47 +18,73 @@ void USelectMapUserWidget::NativeConstruct()
         Play->OnUnhovered.AddDynamic(this, &USelectMapUserWidget::OnPlayButtonUnhovered);
     }
 
-    if (Storage)
+    if (AsianTown)
     {
-        Storage->OnClicked.AddDynamic(this, &USelectMapUserWidget::OnStorageButtonClicked);
-        Storage->OnHovered.AddDynamic(this, &USelectMapUserWidget::OnStorageButtonHovered);
-        Storage->OnUnhovered.AddDynamic(this, &USelectMapUserWidget::OnStorageButtonUnhovered);
+        AsianTown->OnClicked.AddDynamic(this, &USelectMapUserWidget::OnAsianTownButtonClicked);
+        AsianTown->OnHovered.AddDynamic(this, &USelectMapUserWidget::OnAsianTownButtonHovered);
+        AsianTown->OnUnhovered.AddDynamic(this, &USelectMapUserWidget::OnAsianTownButtonUnhovered);
     }
 
-    if (Setting)
+    if (MilitaryAirport)
     {
-        Setting->OnClicked.AddDynamic(this, &USelectMapUserWidget::OnSettingButtonClicked);
-        Setting->OnHovered.AddDynamic(this, &USelectMapUserWidget::OnSettingButtonHovered);
-        Setting->OnUnhovered.AddDynamic(this, &USelectMapUserWidget::OnSettingButtonUnhovered);
+        MilitaryAirport->OnClicked.AddDynamic(this, &USelectMapUserWidget::OnMilitaryAirportButtonClicked);
+        MilitaryAirport->OnHovered.AddDynamic(this, &USelectMapUserWidget::OnMilitaryAirportButtonHovered);
+        MilitaryAirport->OnUnhovered.AddDynamic(this, &USelectMapUserWidget::OnMilitaryAirportButtonUnhovered);
     }
 
-    if (ExitGame)
+    if (Back)
     {
-        ExitGame->OnClicked.AddDynamic(this, &USelectMapUserWidget::OnExitGameButtonClicked);
-        ExitGame->OnHovered.AddDynamic(this, &USelectMapUserWidget::OnExitButtonHovered);
-        ExitGame->OnUnhovered.AddDynamic(this, &USelectMapUserWidget::OnExitButtonUnhovered);
+        Back->OnClicked.AddDynamic(this, &USelectMapUserWidget::OnBackButtonClicked);
+        Back->OnHovered.AddDynamic(this, &USelectMapUserWidget::OnExitButtonHovered);
+        Back->OnUnhovered.AddDynamic(this, &USelectMapUserWidget::OnExitButtonUnhovered);
     }
 }
 
 void USelectMapUserWidget::OnPlayButtonClicked()
 {
-    this->RemoveFromParent();
-
-    if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_SelectMapUserWidget.BP_SelectMapUserWidget_C'")))
-    {
-        UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass);
-        if (SelectMapWidget)
-        {
-            SelectMapWidget->AddToViewport();
-        }
+    if (MapIndex == 1) {
+        UGameplayStatics::OpenLevel(this, FName("L_Showcase_map"));
+    }
+    else if (MapIndex == 2) {
+        UGameplayStatics::OpenLevel(this, FName("Map_Airbase_Demo"));
     }
 }
 
-void USelectMapUserWidget::OnStorageButtonClicked()
+void USelectMapUserWidget::OnAsianTownButtonClicked()
+{
+    if (AsianTown) {
+        color = AsianTown->GetBackgroundColor();
+        color.A = 1;
+        AsianTown->SetBackgroundColor(color);
+    }
+    if (MilitaryAirport) {
+        color = MilitaryAirport->GetBackgroundColor();
+        color.A = 0;
+        MilitaryAirport->SetBackgroundColor(color);
+    }
+    MapIndex = 1;
+}
+
+void USelectMapUserWidget::OnMilitaryAirportButtonClicked()
+{
+    if (AsianTown) {
+        color = AsianTown->GetBackgroundColor();
+        color.A = 0;
+        AsianTown->SetBackgroundColor(color);
+    }
+    if (MilitaryAirport) {
+        color = AsianTown->GetBackgroundColor();
+        color.A = 1;
+        MilitaryAirport->SetBackgroundColor(color);
+    }
+    MapIndex = 2;
+}
+
+void USelectMapUserWidget::OnBackButtonClicked()
 {
     this->RemoveFromParent();
 
-    if (TSubclassOf<UUserWidget> StorageWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_StorageUserWidget.BP_StorageUserWidget_C'")))
+    if (TSubclassOf<UUserWidget> StorageWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_MainMenuUserWidget.BP_MainMenuUserWidget_C'")))
     {
         UUserWidget* StorageWidget = CreateWidget<UUserWidget>(GetWorld(), StorageWidgetClass);
         if (StorageWidget)
@@ -62,52 +94,74 @@ void USelectMapUserWidget::OnStorageButtonClicked()
     }
 }
 
-void USelectMapUserWidget::OnSettingButtonClicked()
-{
-
-}
-
-void USelectMapUserWidget::OnExitGameButtonClicked()
-{
-    UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, true);
-}
-
 void USelectMapUserWidget::OnPlayButtonHovered()
 {
-
+    if (Play) {
+        color = Play->GetBackgroundColor();
+        color.A = 1;
+        Play->SetBackgroundColor(color);
+    }
 }
 
 void USelectMapUserWidget::OnPlayButtonUnhovered()
 {
-
+    if (Play) {
+        color = Play->GetBackgroundColor();
+        color.A = 0;
+        Play->SetBackgroundColor(color);
+    }
 }
 
-void USelectMapUserWidget::OnStorageButtonHovered()
+void USelectMapUserWidget::OnAsianTownButtonHovered()
 {
-
+    if (AsianTown) {
+        color = AsianTown->GetBackgroundColor();
+        color.A = 1;
+        AsianTown->SetBackgroundColor(color);
+    }
 }
 
-void USelectMapUserWidget::OnStorageButtonUnhovered()
+void USelectMapUserWidget::OnAsianTownButtonUnhovered()
 {
-
+    if (AsianTown && MapIndex != 1) {
+        color = AsianTown->GetBackgroundColor();
+        color.A = 0;
+        AsianTown->SetBackgroundColor(color);
+    }
 }
 
-void USelectMapUserWidget::OnSettingButtonHovered()
+void USelectMapUserWidget::OnMilitaryAirportButtonHovered()
 {
-
+    if (MilitaryAirport) {
+        color = MilitaryAirport->GetBackgroundColor();
+        color.A = 1;
+        MilitaryAirport->SetBackgroundColor(color);
+    }
 }
 
-void USelectMapUserWidget::OnSettingButtonUnhovered()
+void USelectMapUserWidget::OnMilitaryAirportButtonUnhovered()
 {
-
+    if (MilitaryAirport && MapIndex != 2) {
+        color = MilitaryAirport->GetBackgroundColor();
+        color.A = 0;
+        MilitaryAirport->SetBackgroundColor(color);
+    }
 }
 
 void USelectMapUserWidget::OnExitButtonHovered()
 {
-
+    if (Back) {
+        color = Back->GetBackgroundColor();
+        color.A = 1;
+        Back->SetBackgroundColor(color);
+    }
 }
 
 void USelectMapUserWidget::OnExitButtonUnhovered()
 {
-
+    if (Back) {
+        color = Back->GetBackgroundColor();
+        color.A = 0;
+        Back->SetBackgroundColor(color);
+    }
 }
