@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputMappingContext.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -21,8 +24,15 @@ protected:
 	virtual void BeginPlay() override;
 
 	void Move(const FInputActionValue& InputValue);
+	void Look(const FInputActionValue& InputValue);
+	void TriggeredRun(const FInputActionValue& InputValue);
+	void CompletedRun(const FInputActionValue& InputValue);
 
 	UInputAction* MovementAction;
+	UInputAction* CameraAction;
+	UInputAction* RunAction;
+
+	UCharacterMovementComponent* CharacterMovement;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
