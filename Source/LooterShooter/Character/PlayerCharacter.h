@@ -8,6 +8,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/TimelineComponent.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -25,14 +26,17 @@ protected:
 
 	void Move(const FInputActionValue& InputValue);
 	void Look(const FInputActionValue& InputValue);
+
 	void TriggeredRun(const FInputActionValue& InputValue);
 	void CompletedRun(const FInputActionValue& InputValue);
 
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
 	UInputAction* RunAction;
-
+	UInputAction* JumpAction;
+	
 	UCharacterMovementComponent* CharacterMovement;
+	APlayerCameraManager* camera;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
@@ -41,4 +45,20 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* IMC;
+
+	//timeline
+private:
+	UPROPERTY(EditAnywhere)
+	UCurveFloat* RunCurve;
+
+	FOnTimelineFloat RunTimeLineUpdateDelegate;
+	FOnTimelineEvent RunTimeLineFinishDelegate;
+
+	FTimeline RunTimeline;
+
+	UFUNCTION()
+	void RunStart(float Output);
+
+	UFUNCTION()
+	void RunEnd();
 };
