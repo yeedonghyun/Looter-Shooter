@@ -4,6 +4,10 @@ APlayerCharacter::APlayerCharacter() {
     PrimaryActorTick.bCanEverTick = true;
 
     CharacterMovement = GetCharacterMovement();
+    Capsule = GetCapsuleComponent();
+    Camera = nullptr;
+    curState = PlayerState::IDEL;
+    bCrouch = false;
 
     IMC = LoadObject<UInputMappingContext>(nullptr, 
         TEXT("/Script/EnhancedInput.InputMappingContext'/Game/Data/IMC_FPS.IMC_FPS'")); 
@@ -20,8 +24,14 @@ APlayerCharacter::APlayerCharacter() {
     JumpAction = LoadObject<UInputAction>(nullptr,
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Jump.IA_Jump'"));
 
+    CrouchAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Crouch.IA_Crouch'"));
+
     RunCurve = LoadObject<UCurveFloat>(nullptr,
-        TEXT("/Script/Engine.CurveFloat'/Game/Data/FOV.FOV'"));
+        TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/RunFOV.RunFOV'"));
+
+    CrouchCurve = LoadObject<UCurveFloat>(nullptr,
+        TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/CrouchCapsuleHalf.CrouchCapsuleHalf'"));
 }
 
 
@@ -30,7 +40,7 @@ void APlayerCharacter::BeginPlay()
 	Super::BeginPlay();
 
     APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-    camera = PlayerController->PlayerCameraManager;
+    Camera = PlayerController->PlayerCameraManager;
 
     if (PlayerController)
     {
@@ -51,6 +61,15 @@ void APlayerCharacter::BeginPlay()
         RunTimeline.AddInterpFloat(RunCurve, RunTimeLineUpdateDelegate);
         RunTimeline.SetTimelineFinishedFunc(RunTimeLineFinishDelegate);
     }
+
+    if (CrouchCurve != nullptr) 
+    {
+        CrouchTimeLineUpdateDelegate.BindUFunction(this, FName("CrouchStart"));
+        CrouchTimeLineFinishDelegate.BindUFunction(this, FName("CrouchEnd"));
+
+        CrouchTimeline.AddInterpFloat(CrouchCurve, CrouchTimeLineUpdateDelegate);
+        CrouchTimeline.SetTimelineFinishedFunc(CrouchTimeLineFinishDelegate);
+    }
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -58,6 +77,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
     RunTimeline.TickTimeline(DeltaTime);
+    CrouchTimeline.TickTimeline(DeltaTime);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -69,16 +89,23 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         FEnhancedInputActionHandlerValueSignature::TMethodPtr<APlayerCharacter> MethodPointer = &APlayerCharacter::Move;
         EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, MethodPointer);
 
-        EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
+        MethodPointer = &APlayerCharacter::Jump;
+        EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, MethodPointer);
 
         MethodPointer = &APlayerCharacter::Look;
         EnhancedInputComponent->BindAction(CameraAction, ETriggerEvent::Triggered, this, MethodPointer);
 
-        MethodPointer = &APlayerCharacter::TriggeredRun;
+        MethodPointer = &APlayerCharacter::Run;
         EnhancedInputComponent->BindAction(RunAction, ETriggerEvent::Triggered, this, MethodPointer);
         
-        MethodPointer = &APlayerCharacter::CompletedRun;
+        MethodPointer = &APlayerCharacter::UnRun;
         EnhancedInputComponent->BindAction(RunAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::Crouch;
+        EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Triggered, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::UnCrouch;
+        EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, this, MethodPointer);
     }
 }
 
@@ -87,6 +114,8 @@ void APlayerCharacter::Move(const FInputActionValue& InputValue)
 {
     if (Controller)
     {
+        curState = PlayerState::MOVEMENT;
+
         FVector2D MovementVector = InputValue.Get<FVector2D>();
         const FVector Forward = GetActorForwardVector();
         const FVector Right = GetActorRightVector();
@@ -105,28 +134,82 @@ void APlayerCharacter::Look(const FInputActionValue& InputValue)
     AddControllerPitchInput(-LookVector.Y);
 }
 
-void APlayerCharacter::TriggeredRun(const FInputActionValue& InputValue)
+void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 {
-    RunTimeline.Play();
-    CharacterMovement->MaxWalkSpeed = 600;
-    
+    ACharacter::Jump();
+    curState = PlayerState::JUMP;
 }
 
-void APlayerCharacter::CompletedRun(const FInputActionValue& InputValue)
+void APlayerCharacter::Run(const FInputActionValue& InputValue)
+{
+    if (!bCrouch && (curState == PlayerState::IDEL || curState == PlayerState::MOVEMENT))
+    {
+        curState = PlayerState::RUN;
+
+        RunTimeline.Play();
+        CharacterMovement->MaxWalkSpeed = 600;
+    }
+}
+
+void APlayerCharacter::UnRun(const FInputActionValue& InputValue)
 {
     RunTimeline.Reverse();
     CharacterMovement->MaxWalkSpeed = 300;
+
+    FVector Velocity = GetVelocity();
+    float Speed2D = FVector(Velocity.X, Velocity.Y, 0.0f).Size();
+
+    if (Speed2D <= 0.1) 
+    {
+        curState = PlayerState::MOVEMENT;
+    }
+    else
+    {
+        curState = PlayerState::IDEL;
+    }
 }
 
 void APlayerCharacter::RunStart(float Output)
 {
-    if (camera)
+    if (Camera)
     {
-        camera->SetFOV(Output);
+        Camera->SetFOV(Output);
     }
 }
 
 void APlayerCharacter::RunEnd()
 {
-    UE_LOG(LogTemp, Log, TEXT("Timeline Finished!"));
+    UE_LOG(LogTemp, Log, TEXT("Run Timeline Finished!"));
+}
+
+void APlayerCharacter::Crouch(const FInputActionValue& InputValue)
+{
+    CrouchTimeline.Play();
+    CharacterMovement->MaxWalkSpeed = 200;
+    bCrouch = true;
+}
+
+void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
+{
+    CrouchTimeline.Reverse();
+    if (curState == RUN) {
+        CharacterMovement->MaxWalkSpeed = 600;
+    }
+    else {
+        CharacterMovement->MaxWalkSpeed = 300;
+    }
+    bCrouch = false;
+}
+
+void APlayerCharacter::CrouchStart(float Output)
+{
+    if (Capsule) 
+    {
+        Capsule->SetCapsuleHalfHeight(Output);
+    }
+}
+
+void APlayerCharacter::CrouchEnd()
+{
+    UE_LOG(LogTemp, Log, TEXT("Crouch Timeline Finished!"));
 }

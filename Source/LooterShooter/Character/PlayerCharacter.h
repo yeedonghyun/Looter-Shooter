@@ -9,6 +9,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -20,23 +21,40 @@ public:
 	// Sets default values for this character's properties
 	APlayerCharacter();
 
+	enum PlayerState
+	{
+		IDEL,
+		RUN,
+		MOVEMENT,
+		JUMP
+	}; 
+
+	PlayerState curState;
+	bool bCrouch;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	void Move(const FInputActionValue& InputValue);
 	void Look(const FInputActionValue& InputValue);
+	void Jump(const FInputActionValue& InputValue);
 
-	void TriggeredRun(const FInputActionValue& InputValue);
-	void CompletedRun(const FInputActionValue& InputValue);
+	void Run(const FInputActionValue& InputValue);
+	void UnRun(const FInputActionValue& InputValue);
+
+	void Crouch(const FInputActionValue& InputValue);
+	void UnCrouch(const FInputActionValue& InputValue);
 
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
 	UInputAction* RunAction;
 	UInputAction* JumpAction;
+	UInputAction* CrouchAction;
 	
 	UCharacterMovementComponent* CharacterMovement;
-	APlayerCameraManager* camera;
+	APlayerCameraManager* Camera;
+	UCapsuleComponent* Capsule;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
@@ -48,6 +66,7 @@ public:
 
 	//timeline
 private:
+	//Run
 	UPROPERTY(EditAnywhere)
 	UCurveFloat* RunCurve;
 
@@ -61,4 +80,19 @@ private:
 
 	UFUNCTION()
 	void RunEnd();
+
+	//Crouch
+	UPROPERTY(EditAnywhere)
+	UCurveFloat* CrouchCurve;
+
+	FOnTimelineFloat CrouchTimeLineUpdateDelegate;
+	FOnTimelineEvent CrouchTimeLineFinishDelegate;
+
+	FTimeline CrouchTimeline;
+
+	UFUNCTION()
+	void CrouchStart(float Output);
+
+	UFUNCTION()
+	void CrouchEnd();
 };
