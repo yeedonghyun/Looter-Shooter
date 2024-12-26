@@ -3,11 +3,12 @@
 APlayerCharacter::APlayerCharacter() {
     PrimaryActorTick.bCanEverTick = true;
 
-    CharacterMovement = GetCharacterMovement();
-    Capsule = GetCapsuleComponent();
-    Camera = nullptr;
     curState = PlayerState::IDEL;
     bCrouch = false;
+    bAiming = false;
+
+    CharacterMovement = GetCharacterMovement();
+    Capsule = GetCapsuleComponent();
 
     IMC = LoadObject<UInputMappingContext>(nullptr, 
         TEXT("/Script/EnhancedInput.InputMappingContext'/Game/Data/IMC_FPS.IMC_FPS'")); 
@@ -27,6 +28,10 @@ APlayerCharacter::APlayerCharacter() {
     CrouchAction = LoadObject<UInputAction>(nullptr,
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Crouch.IA_Crouch'"));
 
+    AimAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Aim.IA_Aim'"));
+
+
     RunCurve = LoadObject<UCurveFloat>(nullptr,
         TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/RunFOV.RunFOV'"));
 
@@ -39,8 +44,21 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-    APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+    PlayerController = GetWorld()->GetFirstPlayerController();
     Camera = PlayerController->PlayerCameraManager;
+
+    auto ChildComponents = GetComponents();
+    for (UActorComponent* Child : ChildComponents)
+    {
+        if (USceneComponent* SceneChild = Cast<USceneComponent>(Child))
+        {
+            if (SceneChild->GetName() == TEXT("Pivot"))
+            {
+                PivotComponent = SceneChild;
+                break;
+            }
+        }
+    }
 
     if (PlayerController)
     {
@@ -78,6 +96,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 
     RunTimeline.TickTimeline(DeltaTime);
     CrouchTimeline.TickTimeline(DeltaTime);
+
+    auto CamearaRotation = PlayerController->GetControlRotation();
+    PivotComponent->SetRelativeRotation(FRotator(CamearaRotation.Pitch, 0, 0));
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -106,9 +127,14 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
         MethodPointer = &APlayerCharacter::UnCrouch;
         EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::Aim;
+        EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::UnAim;
+        EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, MethodPointer);
     }
 }
-
 
 void APlayerCharacter::Move(const FInputActionValue& InputValue)
 {
@@ -199,6 +225,16 @@ void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
         CharacterMovement->MaxWalkSpeed = 300;
     }
     bCrouch = false;
+}
+
+void APlayerCharacter::Aim(const FInputActionValue& InputValue)
+{
+    bAiming = true;
+}
+
+void APlayerCharacter::UnAim(const FInputActionValue& InputValue)
+{
+    bAiming = false;
 }
 
 void APlayerCharacter::CrouchStart(float Output)

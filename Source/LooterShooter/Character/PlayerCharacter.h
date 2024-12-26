@@ -46,15 +46,21 @@ protected:
 	void Crouch(const FInputActionValue& InputValue);
 	void UnCrouch(const FInputActionValue& InputValue);
 
+	void Aim(const FInputActionValue& InputValue);
+	void UnAim(const FInputActionValue& InputValue);
+
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
 	UInputAction* RunAction;
 	UInputAction* JumpAction;
 	UInputAction* CrouchAction;
+	UInputAction* AimAction;
 	
 	UCharacterMovementComponent* CharacterMovement;
 	APlayerCameraManager* Camera;
 	UCapsuleComponent* Capsule;
+	APlayerController* PlayerController;
+	USceneComponent* PivotComponent;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
@@ -64,8 +70,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* IMC;
 
-	//timeline
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bAiming;
+
 private:
+	//timeline
+	
 	//Run
 	UPROPERTY(EditAnywhere)
 	UCurveFloat* RunCurve;
