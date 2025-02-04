@@ -30,7 +30,6 @@ public:
 	}; 
 
 	PlayerState curState;
-	bool bCrouch;
 
 protected:
 	// Called when the game starts or when spawned
@@ -73,6 +72,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bAiming;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bCrouch;
+
 private:
 	//timeline
 	
@@ -105,4 +107,6 @@ private:
 
 	UFUNCTION()
 	void CrouchEnd();
+
+	float Sensitivity;
 };

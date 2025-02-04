@@ -37,6 +37,8 @@ APlayerCharacter::APlayerCharacter() {
 
     CrouchCurve = LoadObject<UCurveFloat>(nullptr,
         TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/CrouchCapsuleHalf.CrouchCapsuleHalf'"));
+
+    Sensitivity = 0.4;
 }
 
 
@@ -47,8 +49,7 @@ void APlayerCharacter::BeginPlay()
     PlayerController = GetWorld()->GetFirstPlayerController();
     Camera = PlayerController->PlayerCameraManager;
 
-    auto ChildComponents = GetComponents();
-    for (UActorComponent* Child : ChildComponents)
+    for (UActorComponent* Child : GetComponents())
     {
         if (USceneComponent* SceneChild = Cast<USceneComponent>(Child))
         {
@@ -156,8 +157,8 @@ void APlayerCharacter::Look(const FInputActionValue& InputValue)
 {
     FVector2D LookVector = InputValue.Get<FVector2D>();
 
-    AddControllerYawInput(LookVector.X);
-    AddControllerPitchInput(-LookVector.Y);
+    AddControllerYawInput(LookVector.X * Sensitivity);
+    AddControllerPitchInput(-LookVector.Y * Sensitivity);
 }
 
 void APlayerCharacter::Jump(const FInputActionValue& InputValue)
@@ -211,6 +212,7 @@ void APlayerCharacter::RunEnd()
 void APlayerCharacter::Crouch(const FInputActionValue& InputValue)
 {
     CrouchTimeline.Play();
+    RunTimeline.Reverse();
     CharacterMovement->MaxWalkSpeed = 200;
     bCrouch = true;
 }
@@ -218,12 +220,8 @@ void APlayerCharacter::Crouch(const FInputActionValue& InputValue)
 void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
 {
     CrouchTimeline.Reverse();
-    if (curState == RUN) {
-        CharacterMovement->MaxWalkSpeed = 600;
-    }
-    else {
-        CharacterMovement->MaxWalkSpeed = 300;
-    }
+    CharacterMovement->MaxWalkSpeed = 300;
+    curState = PlayerState::IDEL;
     bCrouch = false;
 }
 
