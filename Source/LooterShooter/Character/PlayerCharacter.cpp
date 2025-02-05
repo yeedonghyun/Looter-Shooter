@@ -247,6 +247,10 @@ void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Aim(const FInputActionValue& InputValue)
 {
+    if (curState == PlayerState::RUN) {
+        UnRun(InputValue);
+        curState = PlayerState::MOVEMENT;
+    }
     bAiming = true;
 }
 
