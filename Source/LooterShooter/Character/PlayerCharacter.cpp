@@ -100,6 +100,24 @@ void APlayerCharacter::Tick(float DeltaTime)
 
     auto CamearaRotation = PlayerController->GetControlRotation();
     PivotComponent->SetRelativeRotation(FRotator(CamearaRotation.Pitch, 0, 0));
+
+    CheckWallCloseInFront();
+}
+
+void APlayerCharacter::CheckWallCloseInFront()
+{
+    FVector Start;
+    FRotator Rotation;
+    FHitResult HitOut;
+
+    PlayerController->GetPlayerViewPoint(Start, Rotation);
+
+    int ViewDis = 70;
+    FVector End = ((Rotation.Vector() * ViewDis) + Start);
+    FCollisionQueryParams _traceParams;
+    //DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 0.1f);
+
+    bWallCloseInFront = GetWorld()->LineTraceSingleByChannel(HitOut, Start, End, ECC_Visibility, _traceParams);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

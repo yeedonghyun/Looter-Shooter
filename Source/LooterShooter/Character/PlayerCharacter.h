@@ -48,6 +48,8 @@ protected:
 	void Aim(const FInputActionValue& InputValue);
 	void UnAim(const FInputActionValue& InputValue);
 
+	void CheckWallCloseInFront();
+
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
 	UInputAction* RunAction;
@@ -74,6 +76,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bCrouch;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bWallCloseInFront;
 
 private:
 	//timeline
