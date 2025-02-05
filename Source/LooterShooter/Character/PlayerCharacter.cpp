@@ -190,6 +190,7 @@ void APlayerCharacter::Run(const FInputActionValue& InputValue)
     if (!bCrouch && (curState == PlayerState::IDEL || curState == PlayerState::MOVEMENT))
     {
         curState = PlayerState::RUN;
+        bRun = true;
 
         RunTimeline.Play();
         CharacterMovement->MaxWalkSpeed = 600;
@@ -203,6 +204,7 @@ void APlayerCharacter::UnRun(const FInputActionValue& InputValue)
 
     FVector Velocity = GetVelocity();
     float Speed2D = FVector(Velocity.X, Velocity.Y, 0.0f).Size();
+    bRun = false;
 
     if (Speed2D <= 0.1) 
     {
