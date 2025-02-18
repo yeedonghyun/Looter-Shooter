@@ -1,4 +1,5 @@
 #include "PlayerCharacter.h"
+#include "../Bullet/Bullet.h"
 
 APlayerCharacter::APlayerCharacter() {
     PrimaryActorTick.bCanEverTick = true;
@@ -6,9 +7,13 @@ APlayerCharacter::APlayerCharacter() {
     curState = PlayerState::IDEL;
     bCrouch = false;
     bAiming = false;
+    bWallCloseInFront = false;
+    bRun = false;
+    bSemiFire = false;
+    Sensitivity = 0.4;
+    CurrentAmmo = 30;
 
-    CharacterMovement = GetCharacterMovement();
-    Capsule = GetCapsuleComponent();
+    GunEndPoint = FVector(0.f, 0.f, 0.f);
 
     IMC = LoadObject<UInputMappingContext>(nullptr, 
         TEXT("/Script/EnhancedInput.InputMappingContext'/Game/Data/IMC_FPS.IMC_FPS'")); 
@@ -31,16 +36,15 @@ APlayerCharacter::APlayerCharacter() {
     AimAction = LoadObject<UInputAction>(nullptr,
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Aim.IA_Aim'"));
 
+    ShootAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Shoot.IA_Shoot'"));
 
     RunCurve = LoadObject<UCurveFloat>(nullptr,
         TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/RunFOV.RunFOV'"));
-
+    
     CrouchCurve = LoadObject<UCurveFloat>(nullptr,
         TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/CrouchCapsuleHalf.CrouchCapsuleHalf'"));
-
-    Sensitivity = 0.4;
 }
-
 
 void APlayerCharacter::BeginPlay()
 {
@@ -89,6 +93,28 @@ void APlayerCharacter::BeginPlay()
         CrouchTimeline.AddInterpFloat(CrouchCurve, CrouchTimeLineUpdateDelegate);
         CrouchTimeline.SetTimelineFinishedFunc(CrouchTimeLineFinishDelegate);
     }
+
+    if (TSubclassOf<UUserWidget> PlayerUIClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_PlayerUIWidget.BP_PlayerUIWidget_C'")))
+    {
+        PlayerUI = CreateWidget<UPlayerUIWidget>(GetWorld(), PlayerUIClass);
+        if (PlayerUI)
+        {
+            PlayerUI->AddToViewport();
+        }
+    }
+
+    TArray<UActorComponent*> Components;
+    GetComponents(Components);
+
+    for (UActorComponent* Component : Components)
+    {
+        if (Component && Component->ComponentHasTag(TEXT("SkeletalMeshComponent")))
+        {
+            SkeletalMeshComponent = Cast<USkeletalMeshComponent>(Component);
+            break;
+        }
+    }
+
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -113,11 +139,10 @@ void APlayerCharacter::CheckWallCloseInFront()
     PlayerController->GetPlayerViewPoint(Start, Rotation);
 
     int ViewDis = 70;
-    FVector End = ((Rotation.Vector() * ViewDis) + Start);
+    GunEndPoint = ((Rotation.Vector() * ViewDis) + Start);
     FCollisionQueryParams _traceParams;
-    //DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 0.1f);
 
-    bWallCloseInFront = GetWorld()->LineTraceSingleByChannel(HitOut, Start, End, ECC_Visibility, _traceParams);
+    bWallCloseInFront = GetWorld()->LineTraceSingleByChannel(HitOut, Start, GunEndPoint, ECC_Visibility, _traceParams);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -152,6 +177,12 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
         MethodPointer = &APlayerCharacter::UnAim;
         EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::Shoot;
+        EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::UnShoot;
+        EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, MethodPointer);
     }
 }
 
@@ -187,20 +218,20 @@ void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Run(const FInputActionValue& InputValue)
 {
-    if (!bCrouch && (curState == PlayerState::IDEL || curState == PlayerState::MOVEMENT))
+    if (!bAiming && !bCrouch && (curState == PlayerState::IDEL || curState == PlayerState::MOVEMENT) )
     {
         curState = PlayerState::RUN;
         bRun = true;
 
         RunTimeline.Play();
-        CharacterMovement->MaxWalkSpeed = 600;
+        GetCharacterMovement()->MaxWalkSpeed = 600;
     }
 }
 
 void APlayerCharacter::UnRun(const FInputActionValue& InputValue)
 {
     RunTimeline.Reverse();
-    CharacterMovement->MaxWalkSpeed = 300;
+    GetCharacterMovement()->MaxWalkSpeed = 300;
 
     FVector Velocity = GetVelocity();
     float Speed2D = FVector(Velocity.X, Velocity.Y, 0.0f).Size();
@@ -231,40 +262,77 @@ void APlayerCharacter::RunEnd()
 
 void APlayerCharacter::Crouch(const FInputActionValue& InputValue)
 {
+    if (bRun) {
+        UnRun(InputValue);
+    }
+
     CrouchTimeline.Play();
     RunTimeline.Reverse();
-    CharacterMovement->MaxWalkSpeed = 200;
+    GetCharacterMovement()->MaxWalkSpeed = 200;
     bCrouch = true;
 }
 
 void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
 {
     CrouchTimeline.Reverse();
-    CharacterMovement->MaxWalkSpeed = 300;
+    GetCharacterMovement()->MaxWalkSpeed = 300;
     curState = PlayerState::IDEL;
     bCrouch = false;
 }
 
 void APlayerCharacter::Aim(const FInputActionValue& InputValue)
 {
-    if (curState == PlayerState::RUN) {
+    if (curState == PlayerState::RUN) 
         UnRun(InputValue);
-        curState = PlayerState::MOVEMENT;
-    }
+    
+    if (PlayerUI)
+        PlayerUI->HideCrosshairOnAim();
+
     bAiming = true;
 }
 
 void APlayerCharacter::UnAim(const FInputActionValue& InputValue)
 {
+    if (PlayerUI)
+        PlayerUI->ShowCrosshairOnAimEnd();
+
     bAiming = false;
+}
+
+void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
+{
+    if (CurrentAmmo <= 0 || bShoot || bRun) return;
+
+    if (PlayerUI) {
+        CurrentAmmo--;
+        PlayerUI->SetLeftAmmoText(CurrentAmmo);
+    }
+
+    SkeletalMeshComponent->GetAnimInstance()->Montage_Play(ShootAnimation, 1.f);
+    
+    if (TSubclassOf<AActor> BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'")))    {
+        ABullet* SpawnedBullet = GetWorld()->SpawnActor<ABullet>(BulletClass, GunEndPoint, Camera->GetCameraRotation());
+    }
+
+    bShoot = true;
+    
+    float AnimationDuration = 0.2;
+    GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::ResetShoot, AnimationDuration, false);
+}
+
+void APlayerCharacter::ResetShoot()
+{
+    bShoot = false;
+}
+
+void APlayerCharacter::UnShoot(const FInputActionValue& InputValue)
+{
+    bShoot = false;
 }
 
 void APlayerCharacter::CrouchStart(float Output)
 {
-    if (Capsule) 
-    {
-        Capsule->SetCapsuleHalfHeight(Output);
-    }
+    GetCapsuleComponent()->SetCapsuleHalfHeight(Output);
 }
 
 void APlayerCharacter::CrouchEnd()

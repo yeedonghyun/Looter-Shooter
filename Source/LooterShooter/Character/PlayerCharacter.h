@@ -10,6 +10,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "../Widget/PlayerUIWidget.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -18,7 +19,6 @@ class LOOTERSHOOTER_API APlayerCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
 	APlayerCharacter();
 
 	enum PlayerState
@@ -32,7 +32,6 @@ public:
 	PlayerState curState;
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	void Move(const FInputActionValue& InputValue);
@@ -48,6 +47,9 @@ protected:
 	void Aim(const FInputActionValue& InputValue);
 	void UnAim(const FInputActionValue& InputValue);
 
+	void Shoot(const FInputActionValue& InputValue);
+	void UnShoot(const FInputActionValue& InputValue);
+
 	void CheckWallCloseInFront();
 
 	UInputAction* MovementAction;
@@ -56,12 +58,15 @@ protected:
 	UInputAction* JumpAction;
 	UInputAction* CrouchAction;
 	UInputAction* AimAction;
+	UInputAction* ShootAction;
 	
-	UCharacterMovementComponent* CharacterMovement;
 	APlayerCameraManager* Camera;
-	UCapsuleComponent* Capsule;
 	APlayerController* PlayerController;
 	USceneComponent* PivotComponent;
+
+	UPlayerUIWidget* PlayerUI;
+
+	FVector GunEndPoint;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
@@ -82,6 +87,22 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bRun;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bShoot;
+
+	USkeletalMeshComponent* SkeletalMeshComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* ShootAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* ShootAimedAnimation;
+
+	int CurrentAmmo;
+	int MagazineAmmo;
+	bool bSemiFire;
+	float Sensitivity;
 
 private:
 	//timeline
@@ -116,5 +137,6 @@ private:
 	UFUNCTION()
 	void CrouchEnd();
 
-	float Sensitivity;
+	FTimerHandle ShootResetTimerHandle;
+	void ResetShoot();
 };
