@@ -26,7 +26,8 @@ public:
 		IDEL,
 		RUN,
 		MOVEMENT,
-		JUMP
+		JUMP,
+		RELOAD
 	}; 
 
 	PlayerState curState;
@@ -37,6 +38,7 @@ protected:
 	void Move(const FInputActionValue& InputValue);
 	void Look(const FInputActionValue& InputValue);
 	void Jump(const FInputActionValue& InputValue);
+	void Reload(const FInputActionValue& InputValue);
 
 	void Run(const FInputActionValue& InputValue);
 	void UnRun(const FInputActionValue& InputValue);
@@ -56,6 +58,7 @@ protected:
 	UInputAction* CameraAction;
 	UInputAction* RunAction;
 	UInputAction* JumpAction;
+	UInputAction* ReloadAction;
 	UInputAction* CrouchAction;
 	UInputAction* AimAction;
 	UInputAction* ShootAction;
@@ -91,6 +94,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bShoot;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bReload;
+
 	USkeletalMeshComponent* SkeletalMeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
@@ -98,6 +104,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* ShootAimedAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* CharacterReloadAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* GunReloadAnimation;
 
 	int CurrentAmmo;
 	int MagazineAmmo;
@@ -139,4 +151,5 @@ private:
 
 	FTimerHandle ShootResetTimerHandle;
 	void ResetShoot();
+	void ResetReload();
 };

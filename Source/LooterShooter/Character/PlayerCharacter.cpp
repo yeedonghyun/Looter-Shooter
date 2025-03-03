@@ -12,6 +12,7 @@ APlayerCharacter::APlayerCharacter() {
     bSemiFire = false;
     Sensitivity = 0.4;
     CurrentAmmo = 30;
+    MagazineAmmo = CurrentAmmo;
 
     GunEndPoint = FVector(0.f, 0.f, 0.f);
 
@@ -29,6 +30,9 @@ APlayerCharacter::APlayerCharacter() {
 
     JumpAction = LoadObject<UInputAction>(nullptr,
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Jump.IA_Jump'"));
+
+    ReloadAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Reload.IA_Reload'"));
 
     CrouchAction = LoadObject<UInputAction>(nullptr,
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Crouch.IA_Crouch'"));
@@ -154,11 +158,14 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         FEnhancedInputActionHandlerValueSignature::TMethodPtr<APlayerCharacter> MethodPointer = &APlayerCharacter::Move;
         EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, MethodPointer);
 
+        MethodPointer = &APlayerCharacter::Look;
+        EnhancedInputComponent->BindAction(CameraAction, ETriggerEvent::Triggered, this, MethodPointer);
+
         MethodPointer = &APlayerCharacter::Jump;
         EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, MethodPointer);
 
-        MethodPointer = &APlayerCharacter::Look;
-        EnhancedInputComponent->BindAction(CameraAction, ETriggerEvent::Triggered, this, MethodPointer);
+        MethodPointer = &APlayerCharacter::Reload;
+        EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Completed, this, MethodPointer);
 
         MethodPointer = &APlayerCharacter::Run;
         EnhancedInputComponent->BindAction(RunAction, ETriggerEvent::Triggered, this, MethodPointer);
@@ -214,6 +221,36 @@ void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 {
     ACharacter::Jump();
     curState = PlayerState::JUMP;
+}
+
+void APlayerCharacter::Reload(const FInputActionValue& InputValue)
+{
+    if (bReload) {
+        return;
+    }
+
+    if (bRun) {
+        UnRun(InputValue);
+    }
+
+    curState = PlayerState::RELOAD;
+    bReload = true;
+
+    SkeletalMeshComponent->GetAnimInstance()->Montage_Play(CharacterReloadAnimation, 1.f);
+    SkeletalMeshComponent->GetAnimInstance()->Montage_Play(GunReloadAnimation, 1.f);
+
+    float AnimationDuration = 1.9;
+    GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::ResetReload, AnimationDuration, false);
+}
+
+void APlayerCharacter::ResetReload()
+{
+    if (PlayerUI) {
+        CurrentAmmo = MagazineAmmo;
+        PlayerUI->SetLeftAmmoText(CurrentAmmo);
+    }
+
+    bReload = false;
 }
 
 void APlayerCharacter::Run(const FInputActionValue& InputValue)
