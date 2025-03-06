@@ -13,16 +13,7 @@ class LOOTERSHOOTER_API UPlayerUIWidget : public UUserWidget
 
 public:
 	UPROPERTY(meta = (BindWidget))
-	UImage* Left;
-	
-	UPROPERTY(meta = (BindWidget))
-	UImage* Right;
-
-	UPROPERTY(meta = (BindWidget))
-	UImage* Top;
-
-	UPROPERTY(meta = (BindWidget))
-	UImage* Bottom;
+	UImage* Aim;
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* LeftAmmo;

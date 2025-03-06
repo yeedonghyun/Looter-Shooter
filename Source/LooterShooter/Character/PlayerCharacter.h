@@ -11,6 +11,7 @@
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "../Widget/PlayerUIWidget.h"
+#include "../Gun/Weapon.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -52,7 +53,12 @@ protected:
 	void Shoot(const FInputActionValue& InputValue);
 	void UnShoot(const FInputActionValue& InputValue);
 
-	void CheckWallCloseInFront();
+	void PickUpItem(const FInputActionValue& InputValue);
+	void CreateItem(const FInputActionValue& InputValue);
+
+	void CheckObjectCloseAhead();
+	void CheckWall(FVector Start, FRotator Rotation, int ViewDis);
+	void CheckItem(FVector Start, FRotator Rotation, int ViewDis);
 
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
@@ -62,6 +68,8 @@ protected:
 	UInputAction* CrouchAction;
 	UInputAction* AimAction;
 	UInputAction* ShootAction;
+	UInputAction* PickUpItemAction;
+	UInputAction* CreateItemAction;
 	
 	APlayerCameraManager* Camera;
 	APlayerController* PlayerController;
@@ -104,6 +112,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* ShootAimedAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* GunShootAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* CharacterReloadAnimation;
@@ -152,4 +163,7 @@ private:
 	FTimerHandle ShootResetTimerHandle;
 	void ResetShoot();
 	void ResetReload();
+
+	TSubclassOf<AWeapon> WeaponClass;
+	AWeapon* Weapon;
 };

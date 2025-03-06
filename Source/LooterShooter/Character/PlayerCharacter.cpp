@@ -43,11 +43,23 @@ APlayerCharacter::APlayerCharacter() {
     ShootAction = LoadObject<UInputAction>(nullptr,
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Shoot.IA_Shoot'"));
 
+    PickUpItemAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_PickUpItem.IA_PickUpItem'"));
+
+    CreateItemAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_CreateItem.IA_CreateItem'"));
+
     RunCurve = LoadObject<UCurveFloat>(nullptr,
         TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/RunFOV.RunFOV'"));
     
     CrouchCurve = LoadObject<UCurveFloat>(nullptr,
         TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/CrouchCapsuleHalf.CrouchCapsuleHalf'"));
+
+    static ConstructorHelpers::FClassFinder<AActor> WeaponBP(TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Gun/BP_Weapon1.BP_Weapon1_C'"));
+    if (WeaponBP.Succeeded())
+    {
+        WeaponClass = WeaponBP.Class;
+    }
 }
 
 void APlayerCharacter::BeginPlay()
@@ -119,6 +131,35 @@ void APlayerCharacter::BeginPlay()
         }
     }
 
+    if (WeaponClass)
+    {
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.Owner = this;
+        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+        FVector SpawnLocation = FVector::ZeroVector;
+        FRotator SpawnRotation = FRotator::ZeroRotator;
+
+        AActor* SpawnedWeapon = GetWorld()->SpawnActor<AActor>(
+           WeaponClass,
+            SpawnLocation,
+            SpawnRotation,
+            SpawnParams
+        );
+
+        if (SpawnedWeapon)
+        {
+            FAttachmentTransformRules AttachRules(EAttachmentRule::KeepRelative, true);
+
+            SpawnedWeapon->AttachToComponent(
+                SkeletalMeshComponent,
+                AttachRules,
+                FName("ik_hand_gun")
+            );
+
+            Weapon = Cast<AWeapon>(SpawnedWeapon);
+        }
+    }
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -131,22 +172,48 @@ void APlayerCharacter::Tick(float DeltaTime)
     auto CamearaRotation = PlayerController->GetControlRotation();
     PivotComponent->SetRelativeRotation(FRotator(CamearaRotation.Pitch, 0, 0));
 
-    CheckWallCloseInFront();
+    CheckObjectCloseAhead();
 }
 
-void APlayerCharacter::CheckWallCloseInFront()
+void APlayerCharacter::CheckObjectCloseAhead()
 {
     FVector Start;
     FRotator Rotation;
-    FHitResult HitOut;
 
     PlayerController->GetPlayerViewPoint(Start, Rotation);
 
-    int ViewDis = 70;
+    CheckWall(Start, Rotation, 70);
+    CheckItem(Start, Rotation, 140);
+}
+
+void APlayerCharacter::CheckWall(FVector Start, FRotator Rotation, int ViewDis)
+{
+    FHitResult HitOut;
+
     GunEndPoint = ((Rotation.Vector() * ViewDis) + Start);
     FCollisionQueryParams _traceParams;
 
     bWallCloseInFront = GetWorld()->LineTraceSingleByChannel(HitOut, Start, GunEndPoint, ECC_Visibility, _traceParams);
+}
+
+void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
+{
+    FHitResult HitOut;
+
+    FVector EndPoint = ((Rotation.Vector() * ViewDis) + Start);
+    FCollisionQueryParams _traceParams;
+
+    bool bCollision = GetWorld()->LineTraceSingleByChannel(HitOut, Start, EndPoint, ECC_Visibility, _traceParams);
+    if (bCollision) {
+        if (PlayerUI) {
+            PlayerUI->ShowCrosshairOnAimEnd();
+        }   
+    }
+    else {
+        if (PlayerUI) {
+            PlayerUI->HideCrosshairOnAim();
+        }   
+    }
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -190,6 +257,12 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
         MethodPointer = &APlayerCharacter::UnShoot;
         EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::PickUpItem;
+        EnhancedInputComponent->BindAction(PickUpItemAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::CreateItem;
+        EnhancedInputComponent->BindAction(CreateItemAction, ETriggerEvent::Completed, this, MethodPointer);
     }
 }
 
@@ -225,7 +298,7 @@ void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Reload(const FInputActionValue& InputValue)
 {
-    if (bReload) {
+    if (bReload || bShoot) {
         return;
     }
 
@@ -237,7 +310,7 @@ void APlayerCharacter::Reload(const FInputActionValue& InputValue)
     bReload = true;
 
     SkeletalMeshComponent->GetAnimInstance()->Montage_Play(CharacterReloadAnimation, 1.f);
-    SkeletalMeshComponent->GetAnimInstance()->Montage_Play(GunReloadAnimation, 1.f);
+    Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunReloadAnimation, 1.f);
 
     float AnimationDuration = 1.9;
     GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::ResetReload, AnimationDuration, false);
@@ -255,7 +328,11 @@ void APlayerCharacter::ResetReload()
 
 void APlayerCharacter::Run(const FInputActionValue& InputValue)
 {
-    if (!bAiming && !bCrouch && (curState == PlayerState::IDEL || curState == PlayerState::MOVEMENT) )
+    if (bReload || bAiming || bCrouch) {
+        return;
+    }
+
+    if (curState == PlayerState::IDEL || curState == PlayerState::MOVEMENT)
     {
         curState = PlayerState::RUN;
         bRun = true;
@@ -321,24 +398,20 @@ void APlayerCharacter::Aim(const FInputActionValue& InputValue)
 {
     if (curState == PlayerState::RUN) 
         UnRun(InputValue);
-    
-    if (PlayerUI)
-        PlayerUI->HideCrosshairOnAim();
 
     bAiming = true;
 }
 
 void APlayerCharacter::UnAim(const FInputActionValue& InputValue)
 {
-    if (PlayerUI)
-        PlayerUI->ShowCrosshairOnAimEnd();
 
     bAiming = false;
 }
 
 void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
 {
-    if (CurrentAmmo <= 0 || bShoot || bRun) return;
+    if (CurrentAmmo <= 0 || bShoot || bRun || bReload)
+        return;
 
     if (PlayerUI) {
         CurrentAmmo--;
@@ -346,6 +419,7 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
     }
 
     SkeletalMeshComponent->GetAnimInstance()->Montage_Play(ShootAnimation, 1.f);
+    Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunShootAnimation, 1.f);
     
     if (TSubclassOf<AActor> BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'")))    {
         ABullet* SpawnedBullet = GetWorld()->SpawnActor<ABullet>(BulletClass, GunEndPoint, Camera->GetCameraRotation());
@@ -365,6 +439,18 @@ void APlayerCharacter::ResetShoot()
 void APlayerCharacter::UnShoot(const FInputActionValue& InputValue)
 {
     bShoot = false;
+}
+
+void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
+{
+
+}
+
+void APlayerCharacter::CreateItem(const FInputActionValue& InputValue)
+{
+    if (TSubclassOf<AActor> BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'"))) {
+        ABullet* SpawnedBullet = GetWorld()->SpawnActor<ABullet>(BulletClass, GunEndPoint, Camera->GetCameraRotation());
+    }
 }
 
 void APlayerCharacter::CrouchStart(float Output)

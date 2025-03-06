@@ -17,32 +17,14 @@ void UPlayerUIWidget::NativeConstruct()
 
 void UPlayerUIWidget::HideCrosshairOnAim()
 {
-    if (Left)    
-        Left->SetVisibility(ESlateVisibility::Collapsed);
-    
-    if (Right)    
-        Right->SetVisibility(ESlateVisibility::Collapsed);
-    
-    if (Top)    
-        Top->SetVisibility(ESlateVisibility::Collapsed);
-    
-    if (Bottom)    
-        Bottom->SetVisibility(ESlateVisibility::Collapsed);
+    if (Aim)
+        Aim->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UPlayerUIWidget::ShowCrosshairOnAimEnd()
 {
-    if (Left)
-        Left->SetVisibility(ESlateVisibility::Visible);
-
-    if (Right)
-        Right->SetVisibility(ESlateVisibility::Visible);
-
-    if (Top)
-        Top->SetVisibility(ESlateVisibility::Visible);
-
-    if (Bottom)
-        Bottom->SetVisibility(ESlateVisibility::Visible);
+    if (Aim)
+        Aim->SetVisibility(ESlateVisibility::Visible);
 }
 
 void UPlayerUIWidget::SetLeftAmmoText(int CurAmmo)
