@@ -13,6 +13,7 @@ APlayerCharacter::APlayerCharacter() {
     Sensitivity = 0.4;
     CurrentAmmo = 30;
     MagazineAmmo = CurrentAmmo;
+    AimedItem = nullptr;
 
     GunEndPoint = FVector(0.f, 0.f, 0.f);
 
@@ -183,7 +184,7 @@ void APlayerCharacter::CheckObjectCloseAhead()
     PlayerController->GetPlayerViewPoint(Start, Rotation);
 
     CheckWall(Start, Rotation, 70);
-    CheckItem(Start, Rotation, 140);
+    CheckItem(Start, Rotation, 300);
 }
 
 void APlayerCharacter::CheckWall(FVector Start, FRotator Rotation, int ViewDis)
@@ -199,21 +200,42 @@ void APlayerCharacter::CheckWall(FVector Start, FRotator Rotation, int ViewDis)
 void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
 {
     FHitResult HitOut;
-
     FVector EndPoint = ((Rotation.Vector() * ViewDis) + Start);
-    FCollisionQueryParams _traceParams;
+    FCollisionQueryParams TraceParams;
+    TraceParams.bTraceComplex = true;
+    TraceParams.AddIgnoredActor(this); 
 
-    bool bCollision = GetWorld()->LineTraceSingleByChannel(HitOut, Start, EndPoint, ECC_Visibility, _traceParams);
-    if (bCollision) {
-        if (PlayerUI) {
-            PlayerUI->ShowCrosshairOnAimEnd();
-        }   
+    bool bCollision = GetWorld()->LineTraceSingleByChannel(HitOut, Start, EndPoint, ECC_Visibility, TraceParams);
+
+    if (bCollision)
+    {
+        AActor* HitActor = HitOut.GetActor();
+        if (HitActor && HitActor->IsA(AItemBase::StaticClass())) 
+        {
+            AimedItem = Cast<AItemBase>(HitActor);
+            if (PlayerUI)
+            {
+                PlayerUI->ShowCrosshairOnAimEnd();
+            }
+        }
+        else
+        {
+            AimedItem = nullptr;
+            if (PlayerUI)
+            {
+                PlayerUI->HideCrosshairOnAim();
+            }
+        }
     }
-    else {
-        if (PlayerUI) {
+    else
+    {
+        AimedItem = nullptr;
+        if (PlayerUI)
+        {
             PlayerUI->HideCrosshairOnAim();
-        }   
+        }
     }
+
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -443,13 +465,15 @@ void APlayerCharacter::UnShoot(const FInputActionValue& InputValue)
 
 void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 {
-
+    if (AimedItem) {
+        AimedItem->Destroy();
+    }
 }
 
 void APlayerCharacter::CreateItem(const FInputActionValue& InputValue)
 {
-    if (TSubclassOf<AActor> BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'"))) {
-        ABullet* SpawnedBullet = GetWorld()->SpawnActor<ABullet>(BulletClass, GunEndPoint, Camera->GetCameraRotation());
+    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/Heal/Item_banage.Item_banage_C'"))) {
+        AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
     }
 }
 

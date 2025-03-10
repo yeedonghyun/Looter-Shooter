@@ -12,6 +12,7 @@
 #include "Components/CapsuleComponent.h"
 #include "../Widget/PlayerUIWidget.h"
 #include "../Gun/Weapon.h"
+#include "../Item/Item_banage.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -166,4 +167,5 @@ private:
 
 	TSubclassOf<AWeapon> WeaponClass;
 	AWeapon* Weapon;
+	AItemBase* AimedItem;
 };
