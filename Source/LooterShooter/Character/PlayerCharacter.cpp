@@ -56,6 +56,9 @@ APlayerCharacter::APlayerCharacter() {
     CrouchCurve = LoadObject<UCurveFloat>(nullptr,
         TEXT("/Script/Engine.CurveFloat'/Game/Data/TimeLineCourve/CrouchCapsuleHalf.CrouchCapsuleHalf'"));
 
+    InventoryAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Inventory.IA_Inventory'"));
+
     static ConstructorHelpers::FClassFinder<AActor> WeaponBP(TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Gun/BP_Weapon1.BP_Weapon1_C'"));
     if (WeaponBP.Succeeded())
     {
@@ -161,6 +164,19 @@ void APlayerCharacter::BeginPlay()
             Weapon = Cast<AWeapon>(SpawnedWeapon);
         }
     }
+
+
+    if (TSubclassOf<UUserWidget> InventoryClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_PlayerInventoryWidget.BP_PlayerInventoryWidget_C'")))
+    {
+        InventoryUI = CreateWidget<UPlayerInventoryWidget>(GetWorld(), InventoryClass);
+        if (InventoryUI)
+        {
+            InventoryUI->AddToViewport();
+        }
+
+        InventoryUI->CloseInventory();
+    }
+
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -285,6 +301,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
         MethodPointer = &APlayerCharacter::CreateItem;
         EnhancedInputComponent->BindAction(CreateItemAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::InventoryOnOrOff;
+        EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Completed, this, MethodPointer);
     }
 }
 
@@ -485,4 +504,20 @@ void APlayerCharacter::CrouchStart(float Output)
 void APlayerCharacter::CrouchEnd()
 {
     UE_LOG(LogTemp, Log, TEXT("Crouch Timeline Finished!"));
+}
+
+void APlayerCharacter::InventoryOnOrOff(const FInputActionValue& InputValue)
+{
+    if (InventoryUI != nullptr)
+    {
+        if (InventoryUI->Visibility == ESlateVisibility::Hidden)
+        {
+            InventoryUI->OpenInventory();
+        }
+
+        else
+        {
+            InventoryUI->CloseInventory();
+        }
+    }
 }

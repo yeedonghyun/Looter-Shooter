@@ -13,6 +13,7 @@
 #include "../Widget/PlayerUIWidget.h"
 #include "../Gun/Weapon.h"
 #include "../Item/Item_banage.h"
+#include "../Widget/PlayerInventoryWidget.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -60,6 +61,7 @@ protected:
 	void CheckObjectCloseAhead();
 	void CheckWall(FVector Start, FRotator Rotation, int ViewDis);
 	void CheckItem(FVector Start, FRotator Rotation, int ViewDis);
+	void InventoryOnOrOff(const FInputActionValue& InputValue);
 
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
@@ -71,14 +73,16 @@ protected:
 	UInputAction* ShootAction;
 	UInputAction* PickUpItemAction;
 	UInputAction* CreateItemAction;
-	
+	UInputAction* InventoryAction;
+
 	APlayerCameraManager* Camera;
 	APlayerController* PlayerController;
 	USceneComponent* PivotComponent;
 
 	UPlayerUIWidget* PlayerUI;
-
 	FVector GunEndPoint;
+
+	UPlayerInventoryWidget* InventoryUI;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
