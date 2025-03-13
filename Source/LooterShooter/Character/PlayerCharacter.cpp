@@ -491,7 +491,7 @@ void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 
 void APlayerCharacter::CreateItem(const FInputActionValue& InputValue)
 {
-    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/Heal/Item_banage.Item_banage_C'"))) {
+    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/Heal/BP_Item_banage.BP_Item_banage_C'"))) {
         AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
     }
 }
