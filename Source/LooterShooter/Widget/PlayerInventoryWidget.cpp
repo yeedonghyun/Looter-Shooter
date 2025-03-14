@@ -2,7 +2,7 @@
 
 
 #include "PlayerInventoryWidget.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
+
 
 
 void UPlayerInventoryWidget::NativeConstruct()
@@ -22,6 +22,7 @@ void UPlayerInventoryWidget::OpenInventory()
 	{
 		PC->bShowMouseCursor = true; 
 		PC->SetInputMode(FInputModeGameAndUI());
+		//PC->SetInputMode(FInputModeUIOnly());
 	}
 }
 
@@ -39,58 +40,91 @@ void UPlayerInventoryWidget::CloseInventory()
 }
 
 
-void UPlayerInventoryWidget::Init()
+void UPlayerInventoryWidget::AddItem(AItemBase& item)
 {
-	if (!InventorySlots) return;
-
-	int32 NumSlots = InventorySlots->GetChildrenCount();
-
-	for (int32 i = 0; i < NumSlots; i++)
+	for (int i = 0; i < Slots.Num(); i++)
 	{
-		UWidget* SlotWidget = InventorySlots->GetChildAt(i);
-		if (SlotWidget)
+		if (!Slots[i]->haveItem)
 		{
-			UInventorySlot* InventorySlot = Cast<UInventorySlot>(SlotWidget);
-			InventorySlot->idx = i;
-			Slots.Add(InventorySlot);
+			Slots[i]->itemType = item.GetItemType();
+			Slots[i]->UpdateSlot();
+			break;
 		}
 	}
-
-	Slots[1]->SetColor(-1.0f, 1.0f, 1.0f, 1.0f);
-	Slots[2]->SetVisible();
 }
 
 
-
-FReply UPlayerInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+void UPlayerInventoryWidget::Init()
 {
-	FEventReply Reply;
-	Reply.NativeReply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	int32 rowMax = 2;
+	int32 colMax = 5;
 
-	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	TArray<UWidget*> rows = PlayerSlot->GetAllChildren();
+
+	for (int32 i = 0; i < rowMax; i++)
 	{
-		Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton);
-	}
+		UHorizontalBox* HorizontalBox = Cast<UHorizontalBox>(rows[i]);
 
-	return Reply.NativeReply;
-}
-
-void UPlayerInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
-{
-	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
-
-	if (OutOperation == nullptr)
-	{
-		UDragDropSlot* Operation = NewObject<UDragDropSlot>();
-		OutOperation = Operation;
-
-		if (DragWidgetClass)
+		for (int32 j = 0; j < colMax; j++)
 		{
-			UInventorySlot* DragWidget = CreateWidget<UInventorySlot>(GetWorld(), DragWidgetClass);
-			if (DragWidget)
+			if (TSubclassOf<UUserWidget> InventoryClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Inventory/BP_InventorySlot.BP_InventorySlot_C'")))
 			{
-				Operation->DefaultDragVisual = DragWidget;
+				UInventorySlot* InventorySlot = CreateWidget<UInventorySlot>(GetWorld(), InventoryClass);
+
+				if (InventorySlot)
+				{
+					InventorySlot->AddToViewport();
+					InventorySlot->idx = (i * colMax) + j;
+					HorizontalBox->AddChild(InventorySlot);
+					Slots.Add(InventorySlot);
+					InventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+				}
 			}
 		}
 	}
+
+
+
+
+
+
+	//int32 NumSlots = InventorySlots->GetChildrenCount();
+
+	//for (int32 i = 0; i < NumSlots; i++)
+	//{
+	//	UWidget* SlotWidget = InventorySlots->GetChildAt(i);
+	//	if (SlotWidget)
+	//	{
+	//		UInventorySlot* InventorySlot = Cast<UInventorySlot>(SlotWidget);
+	//		InventorySlot->idx = i;
+	//		Slots.Add(InventorySlot);
+
+	//		InventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	//	}
+	//}
+
+	for (int32 i = 0; i < rowMax * colMax; i++)
+	{
+		Slots[i]->SetInvisible();
+	}
+}
+
+void UPlayerInventoryWidget::HandleSwapRequest(int32 FromIndex, int32 ToIndex)
+{
+	if (!Slots[FromIndex]->haveItem)
+	{
+		Slots[FromIndex]->UpdateSlot();
+		Slots[ToIndex]->SetInvisible();
+	}
+
+	//else
+	//{
+	//	UInventorySlot* Operation = NewObject<UInventorySlot>();
+
+	//	Operation = Slots[ToIndex];
+	//	Slots[ToIndex] = Slots[FromIndex];
+	//	Slots[FromIndex] = Operation;
+	//}
+
+	//UE_LOG(LogTemp, Log, TEXT("Swapped Slot %d with Slot %d"), FromIndex, ToIndex);
 }

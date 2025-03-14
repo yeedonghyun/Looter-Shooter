@@ -485,6 +485,9 @@ void APlayerCharacter::UnShoot(const FInputActionValue& InputValue)
 void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 {
     if (AimedItem) {
+
+        InventoryUI->AddItem(*AimedItem);
+
         AimedItem->Destroy();
     }
 }

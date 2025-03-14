@@ -5,6 +5,9 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/UniformGridPanel.h"
 #include "../Inventory/InventorySlot.h"
+#include "Components/WidgetComponent.h"
+#include "Components/VerticalBox.h"
+#include "Components/HorizontalBox.h"
 
 #include "PlayerInventoryWidget.generated.h"
 
@@ -18,22 +21,15 @@ public:
 	void Init();
 	void OpenInventory();
 	void CloseInventory();
-
+	void AddItem(AItemBase& item);
 	virtual void NativeConstruct() override;
-
-
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)override;
+	void HandleSwapRequest(int32 FromIndex, int32 ToIndex);
 
 protected:
 
-
 	UPROPERTY(meta = (BindWidget))
-		UUniformGridPanel* InventorySlots;
+		UVerticalBox* PlayerSlot;
 
-	UPROPERTY(EditAnywhere, Category = "Slot")
-		TSubclassOf<UInventorySlot> DragWidgetClass;
-	
 	TArray<UInventorySlot*> Slots;
 
 public:
