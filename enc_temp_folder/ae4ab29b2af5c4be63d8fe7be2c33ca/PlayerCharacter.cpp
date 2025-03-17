@@ -4,7 +4,7 @@
 APlayerCharacter::APlayerCharacter() {
     PrimaryActorTick.bCanEverTick = true;
 
-    curState = PlayerState::IDLE;
+    curState = PlayerState::IDEL;
     bCrouch = false;
     bAiming = false;
     bWallCloseInFront = false;
@@ -16,9 +16,6 @@ APlayerCharacter::APlayerCharacter() {
     AimedItem = nullptr;
     curHandStamina = 1.f;
     curStamina = 1.f;
-    timerRepeatTime = 0.01;
-    Tired = false;
-    HandTired = false;
 
     GunEndPoint = FVector(0.f, 0.f, 0.f);
 
@@ -185,8 +182,6 @@ void APlayerCharacter::BeginPlay()
         InventoryUI->CloseInventory();
     }
 
-    GetWorldTimerManager().SetTimer(HandStaminaTimerHandle, this, &APlayerCharacter::HandStaminaControl, timerRepeatTime, true);
-    GetWorldTimerManager().SetTimer(StaminaTimerHandle, this, &APlayerCharacter::StaminaControl, timerRepeatTime, true);
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -200,6 +195,12 @@ void APlayerCharacter::Tick(float DeltaTime)
     PivotComponent->SetRelativeRotation(FRotator(CamearaRotation.Pitch, 0, 0));
 
     CheckObjectCloseAhead();
+
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 0.1f, FColor::Red, FString::Printf(TEXT("%f"), curHandStamina));
+
+    }
 }
 
 void APlayerCharacter::CheckObjectCloseAhead()
@@ -277,7 +278,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         EnhancedInputComponent->BindAction(CameraAction, ETriggerEvent::Triggered, this, MethodPointer);
 
         MethodPointer = &APlayerCharacter::Jump;
-        EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, MethodPointer);
+        EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, MethodPointer);
 
         MethodPointer = &APlayerCharacter::Reload;
         EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Completed, this, MethodPointer);
@@ -307,10 +308,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, MethodPointer);
 
         MethodPointer = &APlayerCharacter::PickUpItem;
-        EnhancedInputComponent->BindAction(PickUpItemAction, ETriggerEvent::Started, this, MethodPointer);
+        EnhancedInputComponent->BindAction(PickUpItemAction, ETriggerEvent::Completed, this, MethodPointer);
 
         MethodPointer = &APlayerCharacter::CreateItem;
-        EnhancedInputComponent->BindAction(CreateItemAction, ETriggerEvent::Started, this, MethodPointer);
+        EnhancedInputComponent->BindAction(CreateItemAction, ETriggerEvent::Completed, this, MethodPointer);
 
         MethodPointer = &APlayerCharacter::InventoryOnOrOff;
         EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Completed, this, MethodPointer);
@@ -343,14 +344,14 @@ void APlayerCharacter::Look(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 {
-    if (curStamina < 0.1f || GetCharacterMovement()->IsFalling()) {
+    if (curStamina < 0.3) {
         return;
     }
 
-    curStamina = FMath::Max(curStamina - 0.2f, 0.0f);
+    curStamina -= 0.3;
     PlayerUI->SetStamina(curStamina);
 
-    Super::Jump();
+    ACharacter::Jump();
     curState = PlayerState::JUMP;
 }
 
@@ -386,15 +387,13 @@ void APlayerCharacter::ResetReload()
 
 void APlayerCharacter::Run(const FInputActionValue& InputValue)
 {
-    if (Tired) {
-        return;
-    }
-
     if (bReload || bAiming || bCrouch) {
         return;
     }
 
-    if (curState == PlayerState::IDLE || curState == PlayerState::MOVEMENT)
+    GetWorldTimerManager().SetTimer(StaminaTimerHandle, this, &APlayerCharacter::StaminaControl, 0.1f, true);
+
+    if (curState == PlayerState::IDEL || curState == PlayerState::MOVEMENT)
     {
         curState = PlayerState::RUN;
         bRun = true;
@@ -419,7 +418,7 @@ void APlayerCharacter::UnRun(const FInputActionValue& InputValue)
     }
     else
     {
-        curState = PlayerState::IDLE;
+        curState = PlayerState::IDEL;
     }
 }
 
@@ -452,20 +451,17 @@ void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
 {
     CrouchTimeline.Reverse();
     GetCharacterMovement()->MaxWalkSpeed = 300;
-    curState = PlayerState::IDLE;
+    curState = PlayerState::IDEL;
     bCrouch = false;
 }
 
 void APlayerCharacter::Aim(const FInputActionValue& InputValue)
 {
-    if (HandTired) {
-        return;
-    }
-
-    if (curState == PlayerState::RUN)
+    if (curState == PlayerState::RUN) 
         UnRun(InputValue);
 
     bAiming = true;
+    GetWorldTimerManager().SetTimer(HandStaminaTimerHandle, this, &APlayerCharacter::HandStaminaControl, 0.1f, true);
 }
 
 void APlayerCharacter::UnAim(const FInputActionValue& InputValue)
@@ -552,59 +548,81 @@ void APlayerCharacter::InventoryOnOrOff(const FInputActionValue& InputValue)
 
 void APlayerCharacter::StaminaControl()
 {
-    if (curState == PlayerState::RUN) {
-        curStamina = FMath::Max(curStamina - timerRepeatTime * 0.1, 0.0f);
-
-        if (FMath::IsNearlyZero(curStamina, 0.01f)) {
-            PlayerUI->SetStaminaColor(FLinearColor::Red);
-            curStamina = 0.f;
-            Tired = true;
-
-            UnRun(FInputActionValue());
-        }
+    if (curStamina >= 1.f) {
+        GetWorldTimerManager().ClearTimer(StaminaTimerHandle);
+    }
+    else if (curState == PlayerState::RUN) {
+        curStamina -= 0.1;
     }
     else {
-        curStamina = FMath::Min(curStamina + timerRepeatTime * 0.1, 1.f);
-        if (curStamina >= 0.2 && Tired) {
-            Tired = false;
-            PlayerUI->SetStamina(curStamina);
-            PlayerUI->SetStaminaColor(FLinearColor::White);
+        curStamina += 0.1;
+    }
+
+    if (curStamina <= 0.f) {
+        RunTimeline.Reverse();
+        GetCharacterMovement()->MaxWalkSpeed = 300;
+
+        FVector Velocity = GetVelocity();
+        float Speed2D = FVector(Velocity.X, Velocity.Y, 0.0f).Size();
+        bRun = false;
+
+        if (Speed2D <= 0.1)
+        {
+            curState = PlayerState::MOVEMENT;
+        }
+        else
+        {
+            curState = PlayerState::IDEL;
         }
     }
 
     PlayerUI->SetStamina(curStamina);
-
-    if (GEngine) {
-        GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("curStamina :: %f"), curStamina));
-    }
 }
 
 void APlayerCharacter::HandStaminaControl()
 {
-    if (bAiming) {
-        curHandStamina = FMath::Max(curHandStamina - timerRepeatTime * 0.1 , 0.0f);
-
-        if (FMath::IsNearlyZero(curHandStamina, 0.01f)) {
-            PlayerUI->SetHandStaminaColor(FLinearColor::Red);
-            curHandStamina = 0.f;
-            HandTired = true;
-
-            UnAim(FInputActionValue());
-        }
+    if (curHandStamina >= 1.f) {
+        GetWorldTimerManager().ClearTimer(HandStaminaTimerHandle);
+    }
+    else if (bAiming) {
+        curHandStamina -= 0.1;
     }
     else {
-        curHandStamina = FMath::Min(curHandStamina + timerRepeatTime * 0.1, 1.f);       
-        
-        if (curHandStamina >= 0.2f && HandTired) {
-            HandTired = false;
-            PlayerUI->SetHandStaminaColor(FLinearColor::White);
+        curHandStamina += 0.1;
+    }
+
+    if (curHandStamina <= 0.f) {
+        if (curState == PlayerState::RUN) {
+            if (curStamina >= 1.f) {
+                GetWorldTimerManager().ClearTimer(StaminaTimerHandle);
+            }
+            else if (curState == PlayerState::RUN) {
+                curHandStamina -= 0.1;
+            }
+            else {
+                curHandStamina += 0.1;
+            }
+
+            if (curHandStamina <= 0.f) {
+                RunTimeline.Reverse();
+                GetCharacterMovement()->MaxWalkSpeed = 300;
+
+                FVector Velocity = GetVelocity();
+                float Speed2D = FVector(Velocity.X, Velocity.Y, 0.0f).Size();
+                bRun = false;
+
+                if (Speed2D <= 0.1)
+                {
+                    curState = PlayerState::MOVEMENT;
+                }
+                else
+                {
+                    curState = PlayerState::IDEL;
+                }
+            }
         }
+
+        bAiming = true;
     }
-
-
     PlayerUI->SetHandStamina(curHandStamina);
-
-    if (GEngine) {
-        //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("curHandStamina :: %f"), curHandStamina));
-    }
 }

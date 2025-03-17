@@ -5,7 +5,6 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
-#include "Math/Color.h"
 #include "PlayerUIWidget.generated.h"
 
 UCLASS()
@@ -37,9 +36,6 @@ public:
 
 	void SetLeftAmmoText(int CurAmmo);
 
-	void SetStamina(float Stamina);
 	void SetHandStamina(float Stamina);
-
-	void SetStaminaColor(FLinearColor color);
-	void SetHandStaminaColor(FLinearColor color);
+	void SetStamina(float Stamina);
 };

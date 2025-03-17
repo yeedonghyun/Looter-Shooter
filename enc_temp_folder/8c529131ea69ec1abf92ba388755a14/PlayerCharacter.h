@@ -26,7 +26,7 @@ public:
 
 	enum PlayerState
 	{
-		IDLE,
+		IDEL,
 		RUN,
 		MOVEMENT,
 		JUMP,
@@ -175,20 +175,12 @@ private:
 	AItemBase* AimedItem;
 
 	//stamina
-	float curStamina;
 	float curHandStamina;
-
-	bool Tired;
-	bool HandTired;
-
-	float timerRepeatTime;
+	float curStamina;
 
 	FTimerHandle HandStaminaTimerHandle;
 	FTimerHandle StaminaTimerHandle;
 
-	UFUNCTION()
 	void StaminaControl();
-
-	UFUNCTION()
 	void HandStaminaControl();
 };

@@ -33,22 +33,13 @@ void UPlayerUIWidget::SetLeftAmmoText(int CurAmmo)
     LeftAmmo->SetText(FText::FromString(AmmoString));
 }
 
-void UPlayerUIWidget::SetStamina(float Stamina)
-{
-    UStamina->SetPercent(Stamina);
-}
-
 void UPlayerUIWidget::SetHandStamina(float Stamina)
 {
     UHandStamina->SetPercent(Stamina);
 }
 
-void UPlayerUIWidget::SetStaminaColor(FLinearColor color)
+void UPlayerUIWidget::SetStamina(float Stamina)
 {
-    UStamina->SetFillColorAndOpacity(color);
+    UStamina->SetPercent(Stamina);
 }
 
-void UPlayerUIWidget::SetHandStaminaColor(FLinearColor color)
-{
-    UHandStamina->SetFillColorAndOpacity(color);
-}
