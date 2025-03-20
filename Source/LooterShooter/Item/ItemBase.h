@@ -10,7 +10,8 @@ enum class EItemType : uint8
 {
     WEAPON UMETA(DisplayName = "Weapon"),
     AMMO UMETA(DisplayName = "Ammo"),
-    HEALING UMETA(DisplayName = "Healing")
+    HEALING UMETA(DisplayName = "Healing"),
+    BAG UMETA(DisplayName = "Bag")
 };
 
 UCLASS()

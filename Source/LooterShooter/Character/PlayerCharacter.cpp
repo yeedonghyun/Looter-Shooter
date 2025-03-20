@@ -182,7 +182,7 @@ void APlayerCharacter::BeginPlay()
             InventoryUI->AddToViewport();
         }
 
-        InventoryUI->CloseInventory();
+        InventoryUI->ToggleInventory();
     }
 
     GetWorldTimerManager().SetTimer(HandStaminaTimerHandle, this, &APlayerCharacter::HandStaminaControl, timerRepeatTime, true);
@@ -260,6 +260,15 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
         {
             PlayerUI->HideCrosshairOnAim();
         }
+
+        // 인벤토리 백 업데이트
+        if (InventoryUI)
+        {
+            if (InventoryUI->bBagInventory)
+            {
+                InventoryUI->DeleteBagInventory();
+            }
+        }
     }
 
 }
@@ -312,7 +321,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         MethodPointer = &APlayerCharacter::CreateItem;
         EnhancedInputComponent->BindAction(CreateItemAction, ETriggerEvent::Started, this, MethodPointer);
 
-        MethodPointer = &APlayerCharacter::InventoryOnOrOff;
+        MethodPointer = &APlayerCharacter::ToggleInventory;
         EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Completed, this, MethodPointer);
     }
 }
@@ -511,17 +520,24 @@ void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 {
     if (AimedItem) {
 
-        InventoryUI->AddItem(*AimedItem);
-
-        AimedItem->Destroy();
+        InventoryUI->AddInventoryItem(AimedItem);
+        //AimedItem->Destroy();
     }
 }
 
 void APlayerCharacter::CreateItem(const FInputActionValue& InputValue)
 {
-    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/Heal/BP_Item_banage.BP_Item_banage_C'"))) {
+    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) {
         AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
     }
+
+    //if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/Heal/BP_Bagg.BP_Bagg_C'"))) {
+    //    AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
+    //}
+
+    //if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/Heal/BP_Item_banage.BP_Item_banage_C'"))) {
+    //    AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
+    //}
 }
 
 void APlayerCharacter::CrouchStart(float Output)
@@ -534,18 +550,21 @@ void APlayerCharacter::CrouchEnd()
     UE_LOG(LogTemp, Log, TEXT("Crouch Timeline Finished!"));
 }
 
-void APlayerCharacter::InventoryOnOrOff(const FInputActionValue& InputValue)
+void APlayerCharacter::ToggleInventory(const FInputActionValue& InputValue)
 {
     if (InventoryUI != nullptr)
     {
-        if (InventoryUI->Visibility == ESlateVisibility::Hidden)
-        {
-            InventoryUI->OpenInventory();
-        }
+        InventoryUI->ToggleInventory();
 
-        else
+        if (AimedItem != nullptr)
         {
-            InventoryUI->CloseInventory();
+            if (AimedItem->GetItemType() == EItemType::BAG)
+            {
+                if (!InventoryUI->bBagInventory)
+                {
+                    InventoryUI->CreateBagInventory(AimedItem);
+                }
+            }
         }
     }
 }
@@ -573,10 +592,6 @@ void APlayerCharacter::StaminaControl()
     }
 
     PlayerUI->SetStamina(curStamina);
-
-    if (GEngine) {
-        GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("curStamina :: %f"), curStamina));
-    }
 }
 
 void APlayerCharacter::HandStaminaControl()
@@ -603,8 +618,4 @@ void APlayerCharacter::HandStaminaControl()
 
 
     PlayerUI->SetHandStamina(curHandStamina);
-
-    if (GEngine) {
-        //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("curHandStamina :: %f"), curHandStamina));
-    }
 }

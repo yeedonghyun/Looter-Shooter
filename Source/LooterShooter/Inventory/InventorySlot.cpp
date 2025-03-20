@@ -8,58 +8,55 @@
 void UInventorySlot::NativeConstruct()
 {
 	Super::NativeConstruct();
-	UTexture2D* NewAimImage = LoadObject<UTexture2D>(nullptr, TEXT("/Script/Engine.Texture2D'/Game/Assets/Image/Inventory/item3.item3'"));
-	IMG_Item->SetBrushFromTexture(NewAimImage);
-	haveItem = true;
 }
 
-void UInventorySlot::SetTexture()
+void UInventorySlot::InitInventorySlot(int index, int inventoryInedx, bool drag)
 {
-	UTexture2D* NewAimImage = LoadObject<UTexture2D>(nullptr, TEXT("/Script/Engine.Texture2D'/Game/Assets/Image/Inventory/item3.item3'"));
-	IMG_Item->SetBrushFromTexture(NewAimImage);
-}
-
-
-
-
-void UInventorySlot::SetColor(float r, float g, float b, float a)
-{
-	IMG_Item->SetColorAndOpacity(FLinearColor(r, g, b, a));
-}
-
-void UInventorySlot::SetInvisible()
-{
+	AddToViewport();
+	idx = index;
+	inventoryIdx = inventoryInedx;
 	IMG_Item->SetVisibility(ESlateVisibility::Hidden);
-	haveItem = false;
+	bHaveItem = false;
 }
 
-void UInventorySlot::SetVisible()
+void UInventorySlot::SetItem(AItemBase* AimedItem)
 {
-	IMG_Item->SetVisibility(ESlateVisibility::Visible);
+	ToggleSlot(ESlateVisibility::Visible, true);
+	GetWorldItemData(AimedItem);
+	GetItemImage(this->Name);
 }
 
-void UInventorySlot::UpdateSlot()
+void UInventorySlot::ToggleSlot(ESlateVisibility Visible, bool isActive)
 {
-	IMG_Item->SetVisibility(ESlateVisibility::Visible);
-	haveItem = true;
-
-	//UTexture2D* NewAimImage = LoadObject<UTexture2D>(nullptr, TEXT("/Script/Engine.Texture2D'/Game/Assets/Image/Inventory/item3.item3'"));
-	//IMG_Item->SetBrushFromTexture(NewAimImage);
-
+	bHaveItem = isActive;
+	IMG_Item->SetVisibility(Visible);
 }
 
-void UInventorySlot::RequestSwap(int32 OtherSlotIdx)
+void UInventorySlot::GetWorldItemData(AItemBase* AimedItem)
 {
-	OnSwapRequested.Broadcast(this->idx, OtherSlotIdx);
+	this->Name = AimedItem->GetName();
+	this->Value = AimedItem->GetValue();
+	this->Weight = AimedItem->GetWeight();
+	this->Type = AimedItem->GetItemType();
 }
 
-//void UInventorySlot::RequestSwap(UInventorySlot* OtherSlot)
-//{
-//	if (OtherSlot)
-//	{
-//		OnSwapRequested.Broadcast(this->idx, OtherSlot->idx);
-//	}
-//}
+void UInventorySlot::GetItemImage(FString ItemName)
+{
+	FString AssetPath = FString::Format(TEXT("/Script/Engine.Texture2D'/Game/Assets/Image/Inventory/items/{0}.{0}'"), { ItemName });
+	UTexture2D* NewAimImage = LoadObject<UTexture2D>(nullptr, *AssetPath);
+	IMG_Item->SetBrushFromTexture(NewAimImage);
+}
+
+void UInventorySlot::GetBagData(FSavedItem bag)
+{
+	this->bHaveItem = bag.bHaveItem;
+	this->Name = bag.Name;
+	this->Value = bag.Value;
+	this->Weight = bag.Weight;
+	this->Type = bag.Type;
+}
+
+
 
 FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -68,10 +65,7 @@ FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-		if (haveItem)
-		{
-			Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton);
-		}
+		if (bHaveItem) { Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton); }
 	}
 
 	return Reply.NativeReply;
@@ -85,24 +79,22 @@ void UInventorySlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPo
 	{
 		UDragDropSlot* Operation = NewObject<UDragDropSlot>();
 		Operation->PrevSlotIndex = idx;
+		Operation->PrevInventoryIdx = inventoryIdx;
 		OutOperation = Operation;
 
 		if (DragWidgetClass)
 		{
-			//PlayerController* PC = GetWorld()->GetFirstPlayerController();
+			UInventorySlot* DragWidget = CreateWidget<UInventorySlot>(this, DragWidgetClass);
+			DragWidget->SetOwningPlayer(GetOwningPlayer());
 
-			UInventorySlot* DragWidget = CreateWidget<UInventorySlot>(Cast<APlayerController>(GetWorld()->GetFirstPlayerController()), DragWidgetClass);
-			//UInventorySlot* DragWidget = CreateWidget<UInventorySlot>(GetWorld(), DragWidgetClass);
 			if (DragWidget)
 			{
-				DragWidget->idx = idx;
-				DragWidget->IMG_Item->SetBrush(IMG_Item->GetBrush());
-				DragWidget->Default->SetBrush(Default->GetBrush());
-				DragWidget->SetVisible();
+				DragWidget->ToggleSlot(ESlateVisibility::Visible, true);
+				UTexture2D* ItemTexture = Cast<UTexture2D>(IMG_Item->Brush.GetResourceObject());
+				if (ItemTexture) { DragWidget->IMG_Item->SetBrushFromTexture(ItemTexture); }
+				Operation->DefaultDragVisual = DragWidget;
 
 				GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Debug::%d"), DragWidget->idx));
-
-				Operation->DefaultDragVisual = DragWidget;
 			}
 		}
 	}
@@ -114,10 +106,13 @@ bool UInventorySlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 
 	UDragDropSlot* Operation = Cast<UDragDropSlot>(InOperation);
 
-	if (Operation)
-	{
-		RequestSwap(Operation->PrevSlotIndex);
-	}
+	if (Operation) { RequestSwap(Operation->PrevInventoryIdx, Operation->PrevSlotIndex);}
 
 	return false;
+}
+
+
+void UInventorySlot::RequestSwap(int32 OtherInventoryIdx, int32 OtherSlotIdx)
+{
+	OnSwapRequested.Broadcast(OtherInventoryIdx, OtherSlotIdx, this->inventoryIdx, this->idx);
 }

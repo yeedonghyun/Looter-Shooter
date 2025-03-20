@@ -4,15 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "../Item/ItemBase.h"
 #include "InventoryItem.generated.h"
 
-UENUM(BlueprintType)
-enum class EInventoryItemBase : uint8
-{
-	WEAPON UMETA(DisplayName = "Weapon"),
-	AMMO UMETA(DisplayName = "Ammo"),
-	HEALING UMETA(DisplayName = "Healing")
-};
 
 UCLASS()
 class LOOTERSHOOTER_API UInventoryItem : public UUserWidget
@@ -22,17 +16,15 @@ class LOOTERSHOOTER_API UInventoryItem : public UUserWidget
 
 public:
 
+	UPROPERTY(EditAnywhere, Category = "Slot")
+	FString Name;
 
+	UPROPERTY(EditAnywhere, Category = "Slot")
+	int32 Value;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		FString Name;
+	UPROPERTY(EditAnywhere, Category = "Slot")
+	int32 Weight;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		int32 Value;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		int32 Weight;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		EInventoryItemBase inventoryItemBase;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
+	EItemType Type;
 };

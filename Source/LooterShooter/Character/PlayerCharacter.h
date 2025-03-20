@@ -61,7 +61,7 @@ protected:
 	void CheckObjectCloseAhead();
 	void CheckWall(FVector Start, FRotator Rotation, int ViewDis);
 	void CheckItem(FVector Start, FRotator Rotation, int ViewDis);
-	void InventoryOnOrOff(const FInputActionValue& InputValue);
+	void ToggleInventory(const FInputActionValue& InputValue);
 
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;

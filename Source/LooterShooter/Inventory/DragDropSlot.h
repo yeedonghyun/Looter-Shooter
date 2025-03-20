@@ -18,4 +18,7 @@ class LOOTERSHOOTER_API UDragDropSlot : public UDragDropOperation
 public:
 	UPROPERTY(VisibleAnywhere)
 		int32 PrevSlotIndex;
+
+	UPROPERTY(VisibleAnywhere)
+		int32 PrevInventoryIdx;
 };
