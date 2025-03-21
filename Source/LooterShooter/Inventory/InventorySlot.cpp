@@ -16,28 +16,25 @@ void UInventorySlot::InitInventorySlot(int index, int inventoryInedx, bool drag)
 	idx = index;
 	inventoryIdx = inventoryInedx;
 	IMG_Item->SetVisibility(ESlateVisibility::Hidden);
-	bHaveItem = false;
 }
 
-void UInventorySlot::SetItem(AItemBase* AimedItem)
+void UInventorySlot::SetSlotFromItem(const FItemData& data)
 {
 	ToggleSlot(ESlateVisibility::Visible, true);
-	GetWorldItemData(AimedItem);
-	GetItemImage(this->Name);
+	SlotData.SetSlotFromItemData(data);
+	GetItemImage(SlotData.Name);
+}
+
+void UInventorySlot::SetSlotFromSlot(const FSlotData& data)
+{
+	ToggleSlot(ESlateVisibility::Visible, true);
+	SlotData = data;
+	GetItemImage(SlotData.Name);
 }
 
 void UInventorySlot::ToggleSlot(ESlateVisibility Visible, bool isActive)
 {
-	bHaveItem = isActive;
 	IMG_Item->SetVisibility(Visible);
-}
-
-void UInventorySlot::GetWorldItemData(AItemBase* AimedItem)
-{
-	this->Name = AimedItem->GetName();
-	this->Value = AimedItem->GetValue();
-	this->Weight = AimedItem->GetWeight();
-	this->Type = AimedItem->GetItemType();
 }
 
 void UInventorySlot::GetItemImage(FString ItemName)
@@ -45,15 +42,6 @@ void UInventorySlot::GetItemImage(FString ItemName)
 	FString AssetPath = FString::Format(TEXT("/Script/Engine.Texture2D'/Game/Assets/Image/Inventory/items/{0}.{0}'"), { ItemName });
 	UTexture2D* NewAimImage = LoadObject<UTexture2D>(nullptr, *AssetPath);
 	IMG_Item->SetBrushFromTexture(NewAimImage);
-}
-
-void UInventorySlot::GetBagData(FSavedItem bag)
-{
-	this->bHaveItem = bag.bHaveItem;
-	this->Name = bag.Name;
-	this->Value = bag.Value;
-	this->Weight = bag.Weight;
-	this->Type = bag.Type;
 }
 
 
@@ -65,7 +53,7 @@ FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-		if (bHaveItem) { Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton); }
+		if (SlotData.bHaveItem) { Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton); }
 	}
 
 	return Reply.NativeReply;

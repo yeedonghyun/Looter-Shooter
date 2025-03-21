@@ -4,32 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ItemBase.h"
-#include "Components/StaticMeshComponent.h"
-#include "../Inventory/InventoryItem.h"
 #include "Item_bag.generated.h"
-
-USTRUCT(BlueprintType)
-struct FSavedItem
-{
-	GENERATED_BODY()
-
-public:
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		bool bHaveItem = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		UInventoryItem* ab;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		FString Name;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		int32 Value;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		int32 Weight;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		EItemType Type;
-};
 
 
 UCLASS()
@@ -45,13 +20,13 @@ public:
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		int32 bagHeight;
+		int32 Height;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		int32 bagWidth;
+		int32 Width;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-		TArray<FSavedItem> savedItems;
+		TArray<FSlotData> savedItems;
 
 
 };

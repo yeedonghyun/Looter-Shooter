@@ -25,7 +25,7 @@ void AItem_bag::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 {
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
-    int32 TotalSlots = bagHeight * bagWidth;
+    int32 TotalSlots = Height * Width;
     savedItems.SetNum(TotalSlots);
 }
 #endif

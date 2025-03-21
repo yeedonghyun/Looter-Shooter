@@ -1,13 +1,12 @@
 #include "PlayerInventoryWidget.h"
 
 
-
 void UPlayerInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	bPlayerInventory = true;
-	bBagInventory = false;
+	bOtherInventory = false;
 	InitPlayerInventorySlots();
 	IMG_OtherInventory->SetVisibility(ESlateVisibility::Hidden);
 }
@@ -84,57 +83,56 @@ void UPlayerInventoryWidget::AddInventoryItem(AItemBase* AimedItem)
 {
 	for (int i = 0; i < PlayerInventorySlotArray.Num(); i++)
 	{
-		if (!PlayerInventorySlotArray[i]->bHaveItem)
+		if (!PlayerInventorySlotArray[i]->SlotData.bHaveItem)
 		{
-			PlayerInventorySlotArray[i]->SetItem(AimedItem);
+			PlayerInventorySlotArray[i]->SetSlotFromItem(AimedItem->ItemData);
 			break;
 		}
 	}
 }
 
-void UPlayerInventoryWidget::CreateBagInventory(AItemBase* AimedItem)
+void UPlayerInventoryWidget::CreateOtherInventory(AItemBase* AimedItem)
 {
 	if (OtherInventorySlotArray.Num() > 0)
 	{
-		DeleteBagInventory();
+		DeleteOtherInventory();
 	}
 
 	Bag = Cast<AItem_bag>(AimedItem);
 	//AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
 
-	int32 BagWidth = Bag->bagWidth;
-	int32 BagHeight = Bag->bagHeight;
+	int32 Width = Bag->Width;
+	int32 Height = Bag->Height;
 
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Bag Size: %d x %d"), BagWidth, BagHeight));
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Bag Size: %d x %d"), Width, Height));
 
-	InitInventorySlots(OtherInventorySlots, OtherInventorySlotArray, 1, BagWidth, BagHeight);
-	bBagInventory = true;
+	InitInventorySlots(OtherInventorySlots, OtherInventorySlotArray, 1, Width, Height);
+	bOtherInventory = true;
 
-	TArray<FSavedItem>& Items = Bag->savedItems;
+	TArray<FSlotData>& Items = Bag->savedItems;
 
 	for (int i = 0; i < Items.Num(); i++)
 	{
 		if (Items[i].bHaveItem)
 		{
 			UInventorySlot* slot = Cast<UInventorySlot>(OtherInventorySlotArray[i]);
-			slot->GetBagData(Items[i]);
-			slot->ToggleSlot(ESlateVisibility::Visible, true);
-			slot->GetItemImage(slot->Name);
+
+			slot->SetSlotFromSlot(Items[i]);
 		}
 	}
 
-	SetOtherInventoryImage(Bag->GetName());
+	SetOtherInventoryImage(Bag->ItemData.Name);
 	IMG_OtherInventory->SetVisibility(ESlateVisibility::Visible);
 }
 
-void UPlayerInventoryWidget::DeleteBagInventory()
+void UPlayerInventoryWidget::DeleteOtherInventory()
 {
 	for (int32 i = 0; i < OtherInventorySlotArray.Num(); i++)
 	{
 		OtherInventorySlotArray[i]->RemoveFromParent();
 	}
 
-	bBagInventory = false;
+	bOtherInventory = false;
 	OtherInventorySlotArray.Empty();
 	Bag = nullptr;
 	IMG_OtherInventory->SetVisibility(ESlateVisibility::Hidden);
@@ -151,11 +149,12 @@ void UPlayerInventoryWidget::HandleSwapRequest(int32 FromInventorIdx, int32 From
 
 	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("Debug::/From::%d / To::%d"), From->idx, To->idx));
 
-	std::swap(From->bHaveItem, To->bHaveItem);
-	std::swap(From->Name, To->Name);
-	std::swap(From->Value, To->Value);
-	std::swap(From->Weight, To->Weight);
-	std::swap(From->Type, To->Type);
+	std::swap(From->SlotData.bHaveItem, To->SlotData.bHaveItem);
+
+	std::swap(From->SlotData.Name, To->SlotData.Name);
+	std::swap(From->SlotData.Value, To->SlotData.Value);
+	std::swap(From->SlotData.Weight, To->SlotData.Weight);
+	std::swap(From->SlotData.Type, To->SlotData.Type);
 
 	FSlateBrush FromBrush = From->IMG_Item->Brush;
 	FSlateBrush ToBrush = To->IMG_Item->Brush;
@@ -164,32 +163,28 @@ void UPlayerInventoryWidget::HandleSwapRequest(int32 FromInventorIdx, int32 From
 
 	To->ToggleSlot(ESlateVisibility::Visible, true);
 
-	if(From->bHaveItem){ From->ToggleSlot(ESlateVisibility::Visible, true); }
+	if(From->SlotData.bHaveItem){ From->ToggleSlot(ESlateVisibility::Visible, true); }
 	else { From->ToggleSlot(ESlateVisibility::Hidden, false); }
 
 	if (From->inventoryIdx == 1 || To->inventoryIdx == 1)
 	{
-		TArray<FSavedItem>& Items = Bag->savedItems;
+		TArray<FSlotData>& Items = Bag->savedItems;
 
 		if (From->inventoryIdx == 1)
 		{
-			ChangeBagData(Items[From->idx], From);
+			ChangeOtherInventoryData(Items[From->idx], *From);
 		}
 
 		if (To->inventoryIdx == 1)
 		{
-			ChangeBagData(Items[To->idx], To);
+			ChangeOtherInventoryData(Items[To->idx], *To);
 		}
 	}
 }
 
-void UPlayerInventoryWidget::ChangeBagData(FSavedItem& Item, UInventorySlot* slot)
+void UPlayerInventoryWidget::ChangeOtherInventoryData(FSlotData& Item, const UInventorySlot& slot)
 {
-	Item.bHaveItem = slot->bHaveItem;
-	Item.Name = slot->Name;
-	Item.Value = slot->Value;
-	Item.Weight = slot->Weight;
-	Item.Type = slot->Type;
+	Item = slot.SlotData;
 }
 
 

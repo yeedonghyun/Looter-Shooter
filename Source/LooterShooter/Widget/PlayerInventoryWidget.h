@@ -8,7 +8,8 @@
 #include "Components/WidgetComponent.h"
 #include "Components/VerticalBox.h"
 #include "Components/HorizontalBox.h"
-#include <LooterShooter/Item/Item_bag.h>
+#include "../Item/Item_bag.h"
+
 
 #include "PlayerInventoryWidget.generated.h"
 
@@ -25,11 +26,12 @@ public:
 	void ToggleInventory();
 	void SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData);
 	void AddInventoryItem(AItemBase* AimedItem);
-	void CreateBagInventory(AItemBase* AimedItem);
-	void DeleteBagInventory();
+	void CreateOtherInventory(AItemBase* AimedItem);
+	void DeleteOtherInventory();
 	void HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex);
 	UInventorySlot* GetInventorySlot(int32 InventoryIdx, int32 slotIdx);
-	void ChangeBagData(FSavedItem& Item, UInventorySlot* slot);
+
+	void ChangeOtherInventoryData(FSlotData& Item, const UInventorySlot& slot);
 	void SetOtherInventoryImage(FString ItemName);
 
 protected:
@@ -55,7 +57,7 @@ public:
 	UImage* IMG_OtherInventory;
 
 	bool bPlayerInventory;
-	bool bBagInventory;
+	bool bOtherInventory;
 
 	AItem_bag* Bag;
 

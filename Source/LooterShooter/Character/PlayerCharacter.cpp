@@ -264,9 +264,9 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
         // 인벤토리 백 업데이트
         if (InventoryUI)
         {
-            if (InventoryUI->bBagInventory)
+            if (InventoryUI->bOtherInventory)
             {
-                InventoryUI->DeleteBagInventory();
+                InventoryUI->DeleteOtherInventory();
             }
         }
     }
@@ -558,11 +558,11 @@ void APlayerCharacter::ToggleInventory(const FInputActionValue& InputValue)
 
         if (AimedItem != nullptr)
         {
-            if (AimedItem->GetItemType() == EItemType::BAG)
+            if (AimedItem->ItemData.Type == EItemType::BAG)
             {
-                if (!InventoryUI->bBagInventory)
+                if (!InventoryUI->bOtherInventory)
                 {
-                    InventoryUI->CreateBagInventory(AimedItem);
+                    InventoryUI->CreateOtherInventory(AimedItem);
                 }
             }
         }
