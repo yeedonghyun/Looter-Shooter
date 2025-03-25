@@ -45,6 +45,19 @@ void UInventorySlot::GetItemImage(FString ItemName)
 }
 
 
+void UInventorySlot::DropItem()
+{
+	if (SlotData.bHaveItem)
+	{
+		IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+
+		RequestDrop(SlotData);
+
+
+		SlotData.bHaveItem = false;
+	}
+}
+
 
 FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -55,6 +68,12 @@ FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 	{
 		if (SlotData.bHaveItem) { Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton); }
 	}
+
+	else if (InMouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
+	{
+		DropItem();
+	}
+
 
 	return Reply.NativeReply;
 }
@@ -103,4 +122,10 @@ bool UInventorySlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 void UInventorySlot::RequestSwap(int32 OtherInventoryIdx, int32 OtherSlotIdx)
 {
 	OnSwapRequested.Broadcast(OtherInventoryIdx, OtherSlotIdx, this->inventoryIdx, this->idx);
+}
+
+
+void UInventorySlot::RequestDrop(FSlotData data)
+{
+	OnDropRequested.Broadcast(SlotData);
 }

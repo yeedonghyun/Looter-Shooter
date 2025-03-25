@@ -45,6 +45,7 @@ void UPlayerInventoryWidget::InitInventorySlots(UVerticalBox* ParentSlot, TArray
 					{
 						InventorySlot->InitInventorySlot((i * colSize) + j, InventoryIdx, false);
 						InventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+						InventorySlot->OnDropRequested.AddUObject(this, &UPlayerInventoryWidget::HandleDropRequest);
 
 						HorizontalBox->AddChild(InventorySlot);
 						SlotArray.Add(InventorySlot);
@@ -139,7 +140,14 @@ void UPlayerInventoryWidget::DeleteOtherInventory()
 }
 
 
+void UPlayerInventoryWidget::HandleDropRequest(FSlotData data)
+{
+	OnDropRequested.Broadcast(data.Name);
 
+	//if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) {
+	//	AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GetOwningPlayerPawn(), FRotator::ZeroRotator);
+	//}
+}
 
 
 void UPlayerInventoryWidget::HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex)

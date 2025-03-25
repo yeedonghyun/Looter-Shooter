@@ -183,6 +183,8 @@ void APlayerCharacter::BeginPlay()
         }
 
         InventoryUI->ToggleInventory();
+        InventoryUI->OnDropRequested.AddUObject(this, &APlayerCharacter::CreateInventoryItem);
+
     }
 
     GetWorldTimerManager().SetTimer(HandStaminaTimerHandle, this, &APlayerCharacter::HandStaminaControl, timerRepeatTime, true);
@@ -618,4 +620,12 @@ void APlayerCharacter::HandStaminaControl()
 
 
     PlayerUI->SetHandStamina(curHandStamina);
+}
+
+
+void APlayerCharacter::CreateInventoryItem(FString name)
+{
+    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) {
+        AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
+    }
 }

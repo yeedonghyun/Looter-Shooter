@@ -18,7 +18,7 @@
 
 
 DECLARE_EVENT_FourParams(UInventorySlot, FChangeSlot, int32, int32, int32, int32)
-
+DECLARE_EVENT_OneParam(UInventorySlot, FDropItem, FSlotData)
 
 UCLASS()
 class LOOTERSHOOTER_API UInventorySlot : public UUserWidget
@@ -35,11 +35,13 @@ public:
 	void ToggleSlot(ESlateVisibility Visible, bool isActive);
 	void GetItemImage(FString ItemName);
 
+	void DropItem();
+
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)override;
 	void RequestSwap(int32 OtherInventoryIdx, int32 OtherSlotIdx);
-
+	void RequestDrop(FSlotData data);
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
@@ -57,5 +59,6 @@ public:
 	int32 idx;
 	int32 inventoryIdx;
 	FChangeSlot OnSwapRequested;
+	FDropItem OnDropRequested;
 };
 

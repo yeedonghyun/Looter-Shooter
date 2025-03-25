@@ -62,6 +62,7 @@ protected:
 	void CheckWall(FVector Start, FRotator Rotation, int ViewDis);
 	void CheckItem(FVector Start, FRotator Rotation, int ViewDis);
 	void ToggleInventory(const FInputActionValue& InputValue);
+	void CreateInventoryItem(FString name);
 
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;

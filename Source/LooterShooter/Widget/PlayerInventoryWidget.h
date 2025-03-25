@@ -13,6 +13,7 @@
 
 #include "PlayerInventoryWidget.generated.h"
 
+DECLARE_EVENT_OneParam(UPlayerInventoryWidget, FDropInventoryItem, FString)
 
 UCLASS()
 class LOOTERSHOOTER_API UPlayerInventoryWidget : public UUserWidget
@@ -29,6 +30,7 @@ public:
 	void CreateOtherInventory(AItemBase* AimedItem);
 	void DeleteOtherInventory();
 	void HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex);
+	void HandleDropRequest(FSlotData data);
 	UInventorySlot* GetInventorySlot(int32 InventoryIdx, int32 slotIdx);
 
 	void ChangeOtherInventoryData(FSlotData& Item, const UInventorySlot& slot);
@@ -60,5 +62,7 @@ public:
 	bool bOtherInventory;
 
 	AItem_bag* Bag;
+
+	FDropInventoryItem OnDropRequested;
 
 };
