@@ -20,9 +20,12 @@ protected:
 	virtual void BeginPlay() override;
 
 	USkeletalMeshComponent* SkeletalMeshComponent;
+	USceneComponent* EndPoint;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	USkeletalMeshComponent* GetSkeletalMeshComponent();
+	FVector GetEndPointLocation();
 };

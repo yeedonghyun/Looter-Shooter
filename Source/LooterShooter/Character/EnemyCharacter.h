@@ -5,6 +5,7 @@
 #include "Components/TimelineComponent.h"
 #include "../Bullet/Bullet.h"
 #include "PlayerCharacter.h"
+#include "../Gun/Weapon.h"
 #include "EnemyCharacter.generated.h"
 
 UCLASS()
@@ -22,13 +23,14 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
-	bool CanSeePlayer();
-	void RotateToPlayer();
+	void IsSeePlayer();
+	void RotateToPlayer(float DeltaTime);
 	void Fire();
 	bool bShoot;
 	void ResetShoot();
 	void DetectePlayer();
 	bool IsFacingPlayer();
+	bool bSeePlayer;
 
 	FTimerHandle ShootResetTimerHandle;
 	FTimerHandle DetecteTimerHandle;
@@ -42,4 +44,9 @@ protected:
 
 	TSubclassOf<AActor> BulletClass;
 	APlayerCharacter* TargetPlayer;
+
+	USkeletalMeshComponent* SkeletalMeshComponent;
+
+	TSubclassOf<AWeapon> WeaponClass;
+	AWeapon* Weapon;
 };

@@ -12,6 +12,13 @@ AEnemyCharacter::AEnemyCharacter()
     RotationSpeed = 10;
     FireRate = 0.2f;
     DetecteRate = 0.1f;
+    bSeePlayer = false;
+
+    static ConstructorHelpers::FClassFinder<AActor> WeaponBP(TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Gun/BP_Weapon1.BP_Weapon1_C'"));
+    if (WeaponBP.Succeeded())
+    {
+        WeaponClass = WeaponBP.Class;
+    }
 }
 
 void AEnemyCharacter::BeginPlay()
@@ -22,27 +29,66 @@ void AEnemyCharacter::BeginPlay()
     TargetPlayer = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 
     GetWorldTimerManager().SetTimer(DetecteTimerHandle, this, &AEnemyCharacter::DetectePlayer, DetecteRate, true);
+
+    TArray<UActorComponent*> Components;
+    GetComponents(Components);
+
+    for (UActorComponent* Component : Components)
+    {
+        if (Component && Component->ComponentHasTag(TEXT("SkeletalMeshComponent")))
+        {
+            SkeletalMeshComponent = Cast<USkeletalMeshComponent>(Component);
+            break;
+        }
+    }
+
+    if (WeaponClass)
+    {
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.Owner = this;
+        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+        FVector SpawnLocation = FVector(-11.711598, 5.042916, 4.060307);
+        FRotator SpawnRotation = FRotator(22.833177, 96.678432, 5.169551);
+
+        AActor* SpawnedWeapon = GetWorld()->SpawnActor<AActor>(
+            WeaponClass,
+            SpawnLocation,
+            SpawnRotation,
+            SpawnParams
+        );
+
+        if (SpawnedWeapon)
+        {
+            FAttachmentTransformRules AttachRules(EAttachmentRule::KeepRelative, true);
+
+            SpawnedWeapon->AttachToComponent(
+                SkeletalMeshComponent,
+                AttachRules,
+                FName("ik_hand_gun")
+            );
+
+            Weapon = Cast<AWeapon>(SpawnedWeapon);
+        }
+    }
 }
 
 void AEnemyCharacter::DetectePlayer()
 {
-    if (CanSeePlayer())
-    {
-        RotateToPlayer();
-        Fire();
-    }
+	IsSeePlayer();
+    Fire();    
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    CachedDeltaTime = DeltaTime;
+    RotateToPlayer(DeltaTime);
 }
 
-bool AEnemyCharacter::CanSeePlayer()
+void AEnemyCharacter::IsSeePlayer()
 {
-    if (!TargetPlayer) return false;
+    if (!TargetPlayer) return;
 
     FVector EnemyLocation = GetActorLocation();
     FVector PlayerLocation = TargetPlayer->GetActorLocation();
@@ -50,12 +96,18 @@ bool AEnemyCharacter::CanSeePlayer()
     FVector Forward = GetActorForwardVector();
 
     float Distance = FVector::Dist(EnemyLocation, PlayerLocation);
-    if (Distance > MaxDetectionRange) return false;
+    if (Distance > MaxDetectionRange) {
+		bSeePlayer = false;
+        return;
+    }
 
     float Dot = FVector::DotProduct(Forward, ToPlayer);
     float Angle = FMath::Acos(Dot) * (180.f / PI);
 
-    if (Angle > MaxDetectionAngle) return false;
+    if (Angle > MaxDetectionAngle) {
+        bSeePlayer = false;
+        return;
+    }
 
     FHitResult HitResult;
     FCollisionQueryParams Params;
@@ -63,10 +115,10 @@ bool AEnemyCharacter::CanSeePlayer()
 
     bool bBlocked = GetWorld()->LineTraceSingleByChannel(HitResult, EnemyLocation, PlayerLocation, ECC_Visibility, Params);
 
-    return !bBlocked || HitResult.GetActor() == TargetPlayer;
+    bSeePlayer = true;
 }
 
-void AEnemyCharacter::RotateToPlayer()
+void AEnemyCharacter::RotateToPlayer(float DeltaTime)
 {
     if (!TargetPlayer) return;
 
@@ -74,21 +126,23 @@ void AEnemyCharacter::RotateToPlayer()
     FRotator TargetRotation = Direction.Rotation();
 
     FRotator CurrentRotation = GetActorRotation();
-    FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, CachedDeltaTime, RotationSpeed);
+    float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetRotation.Yaw);
+    float TurnAmount = FMath::Clamp(DeltaYaw, -RotationSpeed * DeltaTime, RotationSpeed * DeltaTime);
 
-    SetActorRotation(NewRotation);
+    CurrentRotation.Yaw += TurnAmount;
+    SetActorRotation(CurrentRotation);
 }
+
 
 void AEnemyCharacter::Fire()
 {
-    if (!CanSeePlayer() || bShoot || !IsFacingPlayer())
+    if (!bSeePlayer || bShoot || !IsFacingPlayer())
         return;
 
-    if (BulletClass) {
-        FVector MuzzleLocation = GetActorLocation() + GetActorForwardVector() * 50.f;
-        FRotator MuzzleRotation = GetActorRotation();
+    if (BulletClass && Weapon) {
+        FVector MuzzleLocation = Weapon->GetEndPointLocation();
 
-        GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, MuzzleRotation);
+        GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, GetActorRotation());
     }
 
     bShoot = true;

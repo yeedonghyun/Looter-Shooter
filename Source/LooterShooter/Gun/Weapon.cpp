@@ -17,8 +17,12 @@ void AWeapon::BeginPlay()
         if (Component && Component->ComponentHasTag(TEXT("SkeletalMeshComponent")))
         {
             SkeletalMeshComponent = Cast<USkeletalMeshComponent>(Component);
-            break;
         }
+
+		if (Component && Component->ComponentHasTag(TEXT("EndPointActor")))
+		{
+			EndPoint = Cast<USceneComponent>(Component);
+		}
     }
 }
 
@@ -30,4 +34,14 @@ void AWeapon::Tick(float DeltaTime)
 USkeletalMeshComponent* AWeapon::GetSkeletalMeshComponent()
 {
     return SkeletalMeshComponent;
+}
+
+FVector AWeapon::GetEndPointLocation()
+{
+	if (!EndPoint)
+	{
+		return FVector::ZeroVector;
+	}
+
+	return EndPoint->GetComponentLocation();
 }
