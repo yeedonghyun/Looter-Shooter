@@ -133,6 +133,8 @@ public:
 	bool bSemiFire;
 	float Sensitivity;
 
+	bool bOpenInventory;
+
 private:
 	//Run
 	UPROPERTY(EditAnywhere)

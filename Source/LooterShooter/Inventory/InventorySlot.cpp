@@ -10,31 +10,46 @@ void UInventorySlot::NativeConstruct()
 	Super::NativeConstruct();
 }
 
-void UInventorySlot::InitInventorySlot(int index, int inventoryInedx, bool drag)
+void UInventorySlot::InitIdxes(int idx, int inventoryIdx)
+{
+	_idx = idx;
+	_inventoryIdx = inventoryIdx;
+}
+
+
+void UInventorySlot::InitInventorySlot(int index, int inventoryInedx, bool drag, int32 x, int32 y)
 {
 	AddToViewport();
-	idx = index;
-	inventoryIdx = inventoryInedx;
+	_idx = index;
+	_inventoryIdx = inventoryInedx;
 	IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 }
 
 void UInventorySlot::SetSlotFromItem(const FItemData& data)
 {
-	ToggleSlot(ESlateVisibility::Visible, true);
 	SlotData.SetSlotFromItemData(data);
 	GetItemImage(SlotData.Name);
+	ToggleSlot();
 }
 
 void UInventorySlot::SetSlotFromSlot(const FSlotData& data)
 {
-	ToggleSlot(ESlateVisibility::Visible, true);
 	SlotData = data;
 	GetItemImage(SlotData.Name);
+	ToggleSlot();
 }
 
-void UInventorySlot::ToggleSlot(ESlateVisibility Visible, bool isActive)
+void UInventorySlot::ToggleSlot()
 {
-	IMG_Item->SetVisibility(Visible);
+	if (SlotData.bHaveItem)
+	{
+		IMG_Item->SetVisibility(ESlateVisibility::Visible);
+	}
+
+	else
+	{
+		IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+	}
 }
 
 void UInventorySlot::GetItemImage(FString ItemName)
@@ -51,12 +66,36 @@ void UInventorySlot::DropItem()
 	{
 		IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 
-		RequestDrop(SlotData);
-
+		//RequestDrop(SlotData);
 
 		SlotData.bHaveItem = false;
 	}
 }
+
+
+void UInventorySlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+
+	if (!SlotData.bHaveItem)
+	{
+		RequestSlotAction(SlotData, ESlotActionType::CHECK, false);
+	}
+
+	else
+	{
+		RequestSlotAction(SlotData, ESlotActionType::CHECK, true);
+	}
+
+}
+
+void UInventorySlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	RequestSlotAction(SlotData, ESlotActionType::CHECK, false);
+}
+
+
 
 
 FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -66,12 +105,16 @@ FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-		if (SlotData.bHaveItem) { Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton); }
+		if (SlotData.bHaveItem) 
+		{ 
+			Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton); 
+			RequestSlotAction(SlotData, ESlotActionType::DRAG, true);
+		}
 	}
 
 	else if (InMouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
 	{
-		DropItem();
+		//RequestUse(SlotData);
 	}
 
 
@@ -85,8 +128,8 @@ void UInventorySlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPo
 	if (OutOperation == nullptr)
 	{
 		UDragDropSlot* Operation = NewObject<UDragDropSlot>();
-		Operation->PrevSlotIndex = idx;
-		Operation->PrevInventoryIdx = inventoryIdx;
+		Operation->PrevSlotIndex = _idx;
+		Operation->PrevInventoryIdx = _inventoryIdx;
 		OutOperation = Operation;
 
 		if (DragWidgetClass)
@@ -96,12 +139,13 @@ void UInventorySlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPo
 
 			if (DragWidget)
 			{
-				DragWidget->ToggleSlot(ESlateVisibility::Visible, true);
+				DragWidget->SlotData.bHaveItem = true;
+				DragWidget->ToggleSlot();
 				UTexture2D* ItemTexture = Cast<UTexture2D>(IMG_Item->Brush.GetResourceObject());
 				if (ItemTexture) { DragWidget->IMG_Item->SetBrushFromTexture(ItemTexture); }
 				Operation->DefaultDragVisual = DragWidget;
 
-				GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Debug::%d"), DragWidget->idx));
+				GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Debug::%d"), DragWidget->_idx));
 			}
 		}
 	}
@@ -115,17 +159,18 @@ bool UInventorySlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 
 	if (Operation) { RequestSwap(Operation->PrevInventoryIdx, Operation->PrevSlotIndex);}
 
+	RequestSlotAction(SlotData, ESlotActionType::DRAG, false);
+
 	return false;
 }
 
 
 void UInventorySlot::RequestSwap(int32 OtherInventoryIdx, int32 OtherSlotIdx)
 {
-	OnSwapRequested.Broadcast(OtherInventoryIdx, OtherSlotIdx, this->inventoryIdx, this->idx);
+	OnSwapRequested.Broadcast(OtherInventoryIdx, OtherSlotIdx, this->_inventoryIdx, this->_idx);
 }
 
-
-void UInventorySlot::RequestDrop(FSlotData data)
+void UInventorySlot::RequestSlotAction(FSlotData data, ESlotActionType type, bool bActive)
 {
-	OnDropRequested.Broadcast(SlotData);
+	OnSlotActionRequested.Broadcast(SlotData, type, bActive);
 }

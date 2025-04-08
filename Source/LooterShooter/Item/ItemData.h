@@ -64,6 +64,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
 		bool bHaveItem;
+
 };
 
 

@@ -1,76 +1,142 @@
 #include "PlayerInventoryWidget.h"
-
+#include "../Save/SaveManager.h"
+#include "../Inventory/Tooltip.h"
 
 void UPlayerInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	bPlayerInventory = true;
+	//bInventoryActive = true;
 	bOtherInventory = false;
-	InitPlayerInventorySlots();
-	IMG_OtherInventory->SetVisibility(ESlateVisibility::Hidden);
-}
+	bDragging = false;
 
-void UPlayerInventoryWidget::InitPlayerInventorySlots()
-{
-	InitInventorySlots(PlayerInventorySlots, PlayerInventorySlotArray, 0, InventoryRowSize, InventoryColSize);
-}
+	WorldInventorySlot->InitIdxes(-1, 1);
+	WorldInventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	WorldInventorySlot->SetVisibility(ESlateVisibility::Hidden);
 
-void UPlayerInventoryWidget::InitInventorySlots(UVerticalBox* ParentSlot, TArray<UInventorySlot*>& SlotArray, int32 InventoryIdx, int32 rowSize, int32 colSize)
-{
-	TSubclassOf<UUserWidget> InventoryClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Inventory/BP_InventorySlot.BP_InventorySlot_C'"));
+	EquipInventorySlot->InitIdxes(-1, 2);
+	EquipInventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	EquipInventorySlot->SetVisibility(ESlateVisibility::Visible);
 
-	if (!InventoryClass)
+	CreateSlots(PlayerInventory, PlayerInventoryArray, 0, InventoryRowSize, InventoryColSize);
+	LoadSelcectSlotData(PlayerInventoryArray, "InventoryItems");
+
+	if (bEquipInventory)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Can't find Class")));
-		return;
-	}
-
-	if (ParentSlot)
-	{
-		TArray<UWidget*> Rows = ParentSlot->GetAllChildren();
-
-		if (Rows.Num() < rowSize)
+		if (TSubclassOf<AItem_bag> TestItemClass = LoadClass<AItem_bag>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) // 나중에 storarge 형태등으로
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Lack Row Size")));
+			AItem_bag* DefaultBag = TestItemClass->GetDefaultObject<AItem_bag>();
+			CreateSlots(EquipInventory, EquipInventoryArray, 2, DefaultBag->Width, DefaultBag->Height);
+			EquipInventorySlot->SetSlotFromItem(DefaultBag->ItemData);
 		}
 
-		for (int32 i = 0; i < rowSize; i++)
-		{
-			if (UHorizontalBox* HorizontalBox = Cast<UHorizontalBox>(Rows[i]))
-			{
-				for (int32 j = 0; j < colSize; j++)
-				{
-					if (UInventorySlot* InventorySlot = CreateWidget<UInventorySlot>(GetWorld(), InventoryClass))
-					{
-						InventorySlot->InitInventorySlot((i * colSize) + j, InventoryIdx, false);
-						InventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
-						InventorySlot->OnDropRequested.AddUObject(this, &UPlayerInventoryWidget::HandleDropRequest);
-
-						HorizontalBox->AddChild(InventorySlot);
-						SlotArray.Add(InventorySlot);
-					}
-				}
-			}
-		}
-
+		LoadSelcectSlotData(EquipInventoryArray, "PlayerBag");
 	}
+
+
+	if (TSubclassOf<UUserWidget> ToolTip = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Inventory/BP_Tooltip.BP_Tooltip_C'")))
+	{
+		SlotToolTip = CreateWidget<UTooltip>(GetWorld(), ToolTip);
+
+		if (SlotToolTip)
+		{
+			SlotToolTip->AddToViewport(999);
+		}
+	}
+
+	SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
+
+
+	FString Info = FString::Printf(
+		TEXT("Health : %d\nArmor : %d\n"),
+		5,
+		4
+	);
+
+	PlayerStatus->SetText(FText::FromString(Info));
 }
 
-void UPlayerInventoryWidget::ToggleInventory()
+
+void UPlayerInventoryWidget::AddItemEmptySlot(AItemBase* AimedItem)
 {
-	if (!bPlayerInventory) { SetUIMode(ESlateVisibility::Visible, true, FInputModeGameAndUI()); }
+	int emptyIdx = FindEmptySlot(PlayerInventoryArray);
+	PlayerInventoryArray[emptyIdx]->SetSlotFromItem(AimedItem->ItemData);
 
-	else { SetUIMode(ESlateVisibility::Hidden, false, FInputModeGameOnly()); }
+	SaveSelectSlotData(PlayerInventoryArray, "Inventory");
+}
 
-	bPlayerInventory = !bPlayerInventory;
+void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
+{
+	if (WorldInventoryArray.Num() > 0)
+	{
+		DeleteWorldInventory();
+	}
+
+	Bag = Cast<AItem_bag>(AimedItem);
+	//AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
+	CreateSlots(WorldInventory, WorldInventoryArray, 1, Bag->Width, Bag->Height);
+	bOtherInventory = true;
+
+	TArray<FSlotData>& Items = Bag->savedItems;
+	for (int i = 0; i < Items.Num(); i++)
+	{
+		if (Items[i].bHaveItem)
+		{
+			UInventorySlot* slot = Cast<UInventorySlot>(WorldInventoryArray[i]);
+			slot->SetSlotFromSlot(Items[i]);
+		}
+	}
+
+	WorldInventorySlot->SetVisibility(ESlateVisibility::Visible);
+	WorldInventorySlot->SetSlotFromItem(Bag->ItemData);
+}
+
+void UPlayerInventoryWidget::DeleteWorldInventory()
+{
+	for (int32 i = 0; i < WorldInventoryArray.Num(); i++)
+	{
+		WorldInventoryArray[i]->RemoveFromParent();
+	}
+
+	WorldInventoryArray.Empty();
+	bOtherInventory = false;
+	WorldInventorySlot->SetVisibility(ESlateVisibility::Hidden);
+
+}
+
+
+
+UInventorySlot* UPlayerInventoryWidget::GetInventorySlot(int32 InventoryIdx, int32 slotIdx)
+{
+	switch (InventoryIdx)
+	{
+	case(0): return PlayerInventoryArray[slotIdx];
+	case(1):return WorldInventoryArray[slotIdx];
+	case(2):return EquipInventoryArray[slotIdx];
+	}
+	return nullptr;
+}
+
+
+void UPlayerInventoryWidget::ToggleInventory(bool bOpen)
+{
+	if (bOpen)
+	{ 
+		SetUIMode(ESlateVisibility::Visible, true, FInputModeGameAndUI()); 
+	}
+
+	else 
+	{ 
+		SetUIMode(ESlateVisibility::Hidden, false, FInputModeGameOnly()); 
+
+		SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
+		SlotToolTip->bShouldFollowMouse = false;
+	}
 }
 
 void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData)
 {
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-
-	if (PC)
+	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
 		PC->bShowMouseCursor = showCursor;
 		PC->SetInputMode(InData);
@@ -80,135 +146,34 @@ void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor
 }
 
 
-void UPlayerInventoryWidget::AddInventoryItem(AItemBase* AimedItem)
+void UPlayerInventoryWidget::HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex)
 {
-	for (int i = 0; i < PlayerInventorySlotArray.Num(); i++)
+	if (FromIndex == -1 || ToIndex == -1)
 	{
-		if (!PlayerInventorySlotArray[i]->SlotData.bHaveItem)
+		if (FromIndex == -1 && ToIndex == -1 && FromInventorIdx != ToInventoryIdx)
 		{
-			PlayerInventorySlotArray[i]->SetSlotFromItem(AimedItem->ItemData);
-			break;
+			for (int i = 0; i < EquipInventoryArray.Num(); i++)
+			{
+				SwapSlot(EquipInventoryArray[i], WorldInventoryArray[i]);
+			}
 		}
 	}
-}
 
-void UPlayerInventoryWidget::CreateOtherInventory(AItemBase* AimedItem)
-{
-	if (OtherInventorySlotArray.Num() > 0)
+	else
 	{
-		DeleteOtherInventory();
+		UInventorySlot* From = GetInventorySlot(FromInventorIdx, FromIndex);
+		UInventorySlot* To = GetInventorySlot(ToInventoryIdx, ToIndex);
+		SwapSlot(From, To);
 	}
 
-	Bag = Cast<AItem_bag>(AimedItem);
-	//AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
-
-	int32 Width = Bag->Width;
-	int32 Height = Bag->Height;
-
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Bag Size: %d x %d"), Width, Height));
-
-	InitInventorySlots(OtherInventorySlots, OtherInventorySlotArray, 1, Width, Height);
-	bOtherInventory = true;
+	SaveSelectSlotData(PlayerInventoryArray, "Inventory");
 
 	TArray<FSlotData>& Items = Bag->savedItems;
 
-	for (int i = 0; i < Items.Num(); i++)
+	for (int i = 0; i < WorldInventoryArray.Num(); i++)
 	{
-		if (Items[i].bHaveItem)
-		{
-			UInventorySlot* slot = Cast<UInventorySlot>(OtherInventorySlotArray[i]);
-
-			slot->SetSlotFromSlot(Items[i]);
-		}
+		Items[i] = WorldInventoryArray[i]->SlotData;
 	}
 
-	SetOtherInventoryImage(Bag->ItemData.Name);
-	IMG_OtherInventory->SetVisibility(ESlateVisibility::Visible);
-}
 
-void UPlayerInventoryWidget::DeleteOtherInventory()
-{
-	for (int32 i = 0; i < OtherInventorySlotArray.Num(); i++)
-	{
-		OtherInventorySlotArray[i]->RemoveFromParent();
-	}
-
-	bOtherInventory = false;
-	OtherInventorySlotArray.Empty();
-	Bag = nullptr;
-	IMG_OtherInventory->SetVisibility(ESlateVisibility::Hidden);
-}
-
-
-void UPlayerInventoryWidget::HandleDropRequest(FSlotData data)
-{
-	OnDropRequested.Broadcast(data.Name);
-
-	//if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) {
-	//	AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GetOwningPlayerPawn(), FRotator::ZeroRotator);
-	//}
-}
-
-
-void UPlayerInventoryWidget::HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex)
-{
-	UInventorySlot* From = GetInventorySlot(FromInventorIdx, FromIndex);
-	UInventorySlot* To = GetInventorySlot(ToInventoryIdx, ToIndex);
-
-	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("Debug::/From::%d / To::%d"), From->idx, To->idx));
-
-	std::swap(From->SlotData.bHaveItem, To->SlotData.bHaveItem);
-
-	std::swap(From->SlotData.Name, To->SlotData.Name);
-	std::swap(From->SlotData.Value, To->SlotData.Value);
-	std::swap(From->SlotData.Weight, To->SlotData.Weight);
-	std::swap(From->SlotData.Type, To->SlotData.Type);
-
-	FSlateBrush FromBrush = From->IMG_Item->Brush;
-	FSlateBrush ToBrush = To->IMG_Item->Brush;
-	From->IMG_Item->SetBrush(ToBrush);
-	To->IMG_Item->SetBrush(FromBrush);
-
-	To->ToggleSlot(ESlateVisibility::Visible, true);
-
-	if(From->SlotData.bHaveItem){ From->ToggleSlot(ESlateVisibility::Visible, true); }
-	else { From->ToggleSlot(ESlateVisibility::Hidden, false); }
-
-	if (From->inventoryIdx == 1 || To->inventoryIdx == 1)
-	{
-		TArray<FSlotData>& Items = Bag->savedItems;
-
-		if (From->inventoryIdx == 1)
-		{
-			ChangeOtherInventoryData(Items[From->idx], *From);
-		}
-
-		if (To->inventoryIdx == 1)
-		{
-			ChangeOtherInventoryData(Items[To->idx], *To);
-		}
-	}
-}
-
-void UPlayerInventoryWidget::ChangeOtherInventoryData(FSlotData& Item, const UInventorySlot& slot)
-{
-	Item = slot.SlotData;
-}
-
-
-UInventorySlot* UPlayerInventoryWidget::GetInventorySlot(int32 InventoryIdx, int32 slotIdx)
-{
-	switch (InventoryIdx)
-	{
-	case(0): return PlayerInventorySlotArray[slotIdx];
-	case(1):return OtherInventorySlotArray[slotIdx];
-	}
-	return nullptr;
-}
-
-void UPlayerInventoryWidget::SetOtherInventoryImage(FString ItemName)
-{
-	FString AssetPath = FString::Format(TEXT("/Script/Engine.Texture2D'/Game/Assets/Image/Inventory/items/{0}.{0}'"), { ItemName });
-	UTexture2D* NewAimImage = LoadObject<UTexture2D>(nullptr, *AssetPath);
-	IMG_OtherInventory->SetBrushFromTexture(NewAimImage);
 }

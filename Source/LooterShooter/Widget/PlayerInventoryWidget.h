@@ -5,49 +5,67 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/UniformGridPanel.h"
 #include "../Inventory/InventorySlot.h"
+#include "../Inventory/InventoryBase.h"
 #include "Components/WidgetComponent.h"
 #include "Components/VerticalBox.h"
 #include "Components/HorizontalBox.h"
 #include "../Item/Item_bag.h"
-
+#include "Components/TextBlock.h"
+#include "../Inventory/Tooltip.h"
 
 #include "PlayerInventoryWidget.generated.h"
+
 
 DECLARE_EVENT_OneParam(UPlayerInventoryWidget, FDropInventoryItem, FString)
 
 UCLASS()
-class LOOTERSHOOTER_API UPlayerInventoryWidget : public UUserWidget
+class LOOTERSHOOTER_API UPlayerInventoryWidget : public UInventoryBase
 {
 	GENERATED_BODY()
 
 public:
 	virtual void NativeConstruct() override;
-	void InitPlayerInventorySlots();
-	void InitInventorySlots(UVerticalBox* ParentSlot, TArray<UInventorySlot*>& SlotArray, int32 InventoryIdx, int32 rowSize, int32 colSize);
-	void ToggleInventory();
-	void SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData);
-	void AddInventoryItem(AItemBase* AimedItem);
-	void CreateOtherInventory(AItemBase* AimedItem);
-	void DeleteOtherInventory();
-	void HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex);
-	void HandleDropRequest(FSlotData data);
+
+
+	void AddItemEmptySlot(AItemBase* AimedItem);
+	void CreateWorldInventory(AItemBase* AimedItem);
+	void DeleteWorldInventory();
+
 	UInventorySlot* GetInventorySlot(int32 InventoryIdx, int32 slotIdx);
 
-	void ChangeOtherInventoryData(FSlotData& Item, const UInventorySlot& slot);
-	void SetOtherInventoryImage(FString ItemName);
+	void ToggleInventory(bool bOpen);
+	void SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData);
+
+
+	virtual void HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex) override;
+
 
 protected:
 
-	UPROPERTY(meta = (BindWidget))
-	UVerticalBox* PlayerInventorySlots;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+		UInventorySlot* EquipInventorySlot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+		UInventorySlot* WorldInventorySlot;
 
 	UPROPERTY(meta = (BindWidget))
-	UVerticalBox* OtherInventorySlots;
+		UVerticalBox* PlayerInventory;
 
-	TArray<UInventorySlot*> PlayerInventorySlotArray;
-	TArray<UInventorySlot*> OtherInventorySlotArray;
+	UPROPERTY(meta = (BindWidget))
+		UVerticalBox* WorldInventory;
+
+	UPROPERTY(meta = (BindWidget))
+		UVerticalBox* EquipInventory;
+
+	
+
 
 public:
+
+	TArray<UInventorySlot*> PlayerInventoryArray;
+	TArray<UInventorySlot*> WorldInventoryArray;
+	TArray<UInventorySlot*> EquipInventoryArray;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 InventoryRowSize;
@@ -55,11 +73,17 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 InventoryColSize;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	UImage* IMG_OtherInventory;
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	bool bEquipInventory;
 
-	bool bPlayerInventory;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+		UTextBlock* PlayerStatus;
+
 	bool bOtherInventory;
+
+
 
 	AItem_bag* Bag;
 

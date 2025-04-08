@@ -20,6 +20,8 @@ APlayerCharacter::APlayerCharacter() {
     Tired = false;
     HandTired = false;
 
+    bOpenInventory = false;
+
     GunEndPoint = FVector(0.f, 0.f, 0.f);
 
     IMC = LoadObject<UInputMappingContext>(nullptr, 
@@ -182,7 +184,7 @@ void APlayerCharacter::BeginPlay()
             InventoryUI->AddToViewport();
         }
 
-        InventoryUI->ToggleInventory();
+        InventoryUI->ToggleInventory(bOpenInventory);
         InventoryUI->OnDropRequested.AddUObject(this, &APlayerCharacter::CreateInventoryItem);
 
     }
@@ -268,7 +270,7 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
         {
             if (InventoryUI->bOtherInventory)
             {
-                InventoryUI->DeleteOtherInventory();
+                InventoryUI->DeleteWorldInventory();
             }
         }
     }
@@ -330,7 +332,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::Move(const FInputActionValue& InputValue)
 {
-    if (Controller)
+    if (Controller && !bOpenInventory)
     {
         curState = PlayerState::MOVEMENT;
 
@@ -354,7 +356,7 @@ void APlayerCharacter::Look(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 {
-    if (curStamina < 0.1f || GetCharacterMovement()->IsFalling()) {
+    if (curStamina < 0.1f || GetCharacterMovement()->IsFalling() || bOpenInventory) {
         return;
     }
 
@@ -367,7 +369,7 @@ void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Reload(const FInputActionValue& InputValue)
 {
-    if (bReload || bShoot) {
+    if (bReload || bShoot || bOpenInventory) {
         return;
     }
 
@@ -401,7 +403,7 @@ void APlayerCharacter::Run(const FInputActionValue& InputValue)
         return;
     }
 
-    if (bReload || bAiming || bCrouch) {
+    if (bReload || bAiming || bCrouch || bOpenInventory) {
         return;
     }
 
@@ -469,7 +471,7 @@ void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Aim(const FInputActionValue& InputValue)
 {
-    if (HandTired) {
+    if (HandTired || bOpenInventory) {
         return;
     }
 
@@ -481,13 +483,12 @@ void APlayerCharacter::Aim(const FInputActionValue& InputValue)
 
 void APlayerCharacter::UnAim(const FInputActionValue& InputValue)
 {
-
     bAiming = false;
 }
 
 void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
 {
-    if (CurrentAmmo <= 0 || bShoot || bRun || bReload)
+    if (CurrentAmmo <= 0 || bShoot || bRun || bReload || bOpenInventory)
         return;
 
     if (PlayerUI) {
@@ -499,7 +500,12 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
     Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunShootAnimation, 1.f);
     
     if (TSubclassOf<AActor> BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'")))    {
-        ABullet* SpawnedBullet = GetWorld()->SpawnActor<ABullet>(BulletClass, GunEndPoint, Camera->GetCameraRotation());
+
+        if (BulletClass && Weapon) {
+            FVector MuzzleLocation = Weapon->GetEndPointLocation();
+
+            GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, GetActorRotation());
+        }
     }
 
     bShoot = true;
@@ -522,7 +528,20 @@ void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 {
     if (AimedItem) {
 
-        InventoryUI->AddInventoryItem(AimedItem);
+        if (AimedItem->ItemData.Type == EItemType::BAG)
+        {
+            AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
+            TArray<FSlotData>& Items = Bag->savedItems;
+
+            for (int i = 0; i < Items.Num(); i++)
+            {
+                if (Items[i].bHaveItem)
+                {
+                    return;
+                }
+            }
+        }
+        InventoryUI->AddItemEmptySlot(AimedItem);
         //AimedItem->Destroy();
     }
 }
@@ -554,19 +573,15 @@ void APlayerCharacter::CrouchEnd()
 
 void APlayerCharacter::ToggleInventory(const FInputActionValue& InputValue)
 {
-    if (InventoryUI != nullptr)
+    if (InventoryUI)
     {
-        InventoryUI->ToggleInventory();
+        bOpenInventory = !bOpenInventory;
+        InventoryUI->ToggleInventory(bOpenInventory);
 
-        if (AimedItem != nullptr)
+
+        if (AimedItem && AimedItem->ItemData.Type == EItemType::BAG && !InventoryUI->bOtherInventory)
         {
-            if (AimedItem->ItemData.Type == EItemType::BAG)
-            {
-                if (!InventoryUI->bOtherInventory)
-                {
-                    InventoryUI->CreateOtherInventory(AimedItem);
-                }
-            }
+            InventoryUI->CreateWorldInventory(AimedItem);
         }
     }
 }
