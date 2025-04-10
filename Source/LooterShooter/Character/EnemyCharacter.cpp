@@ -5,14 +5,17 @@ AEnemyCharacter::AEnemyCharacter()
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    bShoot = false;
     MaxDetectionRange = 3000;
     MaxDetectionAngle = 180;
 
-    RotationSpeed = 10;
+    RotationSpeed = 90;
     FireRate = 0.2f;
     DetecteRate = 0.1f;
     bSeePlayer = false;
+    CurrentAmmo = 30;
+    bShoot = false;
+
+    CurrentState = EEnemyState::Idle;
 
     static ConstructorHelpers::FClassFinder<AActor> WeaponBP(TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Gun/BP_Weapon1.BP_Weapon1_C'"));
     if (WeaponBP.Succeeded())
@@ -86,6 +89,14 @@ void AEnemyCharacter::Tick(float DeltaTime)
     RotateToPlayer(DeltaTime);
 }
 
+void AEnemyCharacter::UpdateWalkSpeed(float NewWalkSpeed)
+{
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->MaxWalkSpeed = NewWalkSpeed;
+    }
+}
+
 void AEnemyCharacter::IsSeePlayer()
 {
     if (!TargetPlayer) return;
@@ -115,7 +126,7 @@ void AEnemyCharacter::IsSeePlayer()
 
     bool bBlocked = GetWorld()->LineTraceSingleByChannel(HitResult, EnemyLocation, PlayerLocation, ECC_Visibility, Params);
 
-    bSeePlayer = true;
+    bSeePlayer = false;
 }
 
 void AEnemyCharacter::RotateToPlayer(float DeltaTime)
@@ -132,7 +143,6 @@ void AEnemyCharacter::RotateToPlayer(float DeltaTime)
     CurrentRotation.Yaw += TurnAmount;
     SetActorRotation(CurrentRotation);
 }
-
 
 void AEnemyCharacter::Fire()
 {

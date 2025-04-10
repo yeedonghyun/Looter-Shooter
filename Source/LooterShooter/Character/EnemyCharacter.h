@@ -8,6 +8,16 @@
 #include "../Gun/Weapon.h"
 #include "EnemyCharacter.generated.h"
 
+
+UENUM(BlueprintType)
+enum class EEnemyState : uint8
+{
+	Idle       UMETA(DisplayName = "Idle"),
+	Patrol     UMETA(DisplayName = "Patrol"),
+	Alert      UMETA(DisplayName = "Alert"),
+	Combat     UMETA(DisplayName = "Combat")
+};
+
 UCLASS()
 class LOOTERSHOOTER_API AEnemyCharacter : public ACharacter
 {
@@ -22,15 +32,36 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Action")
+	EEnemyState CurrentState; // EnemyState를 UPROPERTY로 선언
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* ShootAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* GunShootAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* CharacterReloadAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* GunReloadAnimation;
+
+	int CurrentAmmo;
+
+	UFUNCTION(BlueprintCallable)
+	void UpdateWalkSpeed(float NewWalkSpeed);
+
 protected:
 	void IsSeePlayer();
 	void RotateToPlayer(float DeltaTime);
 	void Fire();
-	bool bShoot;
 	void ResetShoot();
 	void DetectePlayer();
+
 	bool IsFacingPlayer();
 	bool bSeePlayer;
+	bool bShoot;
 
 	FTimerHandle ShootResetTimerHandle;
 	FTimerHandle DetecteTimerHandle;

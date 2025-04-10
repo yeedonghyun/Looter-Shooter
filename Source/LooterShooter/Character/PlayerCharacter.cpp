@@ -403,11 +403,11 @@ void APlayerCharacter::Run(const FInputActionValue& InputValue)
         return;
     }
 
-    if (bReload || bAiming || bCrouch || bOpenInventory) {
+    if (bReload || bAiming || bCrouch || bOpenInventory || curState == PlayerState::IDLE) {
         return;
     }
 
-    if (curState == PlayerState::IDLE || curState == PlayerState::MOVEMENT)
+    if (curState == PlayerState::MOVEMENT)
     {
         curState = PlayerState::RUN;
         bRun = true;
@@ -504,7 +504,7 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
         if (BulletClass && Weapon) {
             FVector MuzzleLocation = Weapon->GetEndPointLocation();
 
-            GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, GetActorRotation());
+            GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, Camera->GetCameraRotation());
         }
     }
 
