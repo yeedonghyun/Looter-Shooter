@@ -39,6 +39,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	void Move(const FInputActionValue& InputValue);
+	void UnMove(const FInputActionValue& InputValue);
 	void Look(const FInputActionValue& InputValue);
 	void Jump(const FInputActionValue& InputValue);
 	void Reload(const FInputActionValue& InputValue);

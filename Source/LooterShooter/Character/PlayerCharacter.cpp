@@ -286,6 +286,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         FEnhancedInputActionHandlerValueSignature::TMethodPtr<APlayerCharacter> MethodPointer = &APlayerCharacter::Move;
         EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, MethodPointer);
 
+        MethodPointer = &APlayerCharacter::UnMove;
+        EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Completed, this, MethodPointer);
+
         MethodPointer = &APlayerCharacter::Look;
         EnhancedInputComponent->BindAction(CameraAction, ETriggerEvent::Triggered, this, MethodPointer);
 
@@ -344,6 +347,15 @@ void APlayerCharacter::Move(const FInputActionValue& InputValue)
 
         AddMovementInput(Direction, 1.0f);
     }
+}
+
+void APlayerCharacter::UnMove(const FInputActionValue& InputValue)
+{
+    if (bRun)
+    {
+        UnRun(InputValue);
+    }
+    curState = PlayerState::IDLE;
 }
 
 void APlayerCharacter::Look(const FInputActionValue& InputValue)
@@ -407,7 +419,10 @@ void APlayerCharacter::Run(const FInputActionValue& InputValue)
         return;
     }
 
-    if (curState == PlayerState::MOVEMENT)
+    FVector Velocity = GetVelocity();
+    float Speed2D = FVector(Velocity.X, Velocity.Y, 0.0f).Size();
+
+    if (Speed2D > 0.1f)
     {
         curState = PlayerState::RUN;
         bRun = true;
