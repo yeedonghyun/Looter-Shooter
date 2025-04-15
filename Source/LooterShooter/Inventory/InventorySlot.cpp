@@ -10,20 +10,20 @@ void UInventorySlot::NativeConstruct()
 	Super::NativeConstruct();
 }
 
-void UInventorySlot::InitIdxes(int idx, int inventoryIdx)
-{
-	_idx = idx;
-	_inventoryIdx = inventoryIdx;
-}
 
 
-void UInventorySlot::InitInventorySlot(int index, int inventoryInedx, bool drag, int32 x, int32 y)
+void UInventorySlot::InitInventorySlot(int idx, int InventoryIdx, EItemType type)
 {
 	AddToViewport();
-	_idx = index;
-	_inventoryIdx = inventoryInedx;
+	_idx = idx;
+	_inventoryIdx = InventoryIdx;
+	SlotType = type;
+	bEquipped = false;
 	IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 }
+
+
+
 
 void UInventorySlot::SetSlotFromItem(const FItemData& data)
 {
@@ -114,6 +114,13 @@ FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 
 	else if (InMouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
 	{
+		if (SlotData.Type == EItemType::HEALING)
+		{
+			RequestSlotAction(SlotData, ESlotActionType::USE, true);
+			SlotData.bHaveItem = false;
+			IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+		}
+
 		//RequestUse(SlotData);
 	}
 
@@ -130,6 +137,10 @@ void UInventorySlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPo
 		UDragDropSlot* Operation = NewObject<UDragDropSlot>();
 		Operation->PrevSlotIndex = _idx;
 		Operation->PrevInventoryIdx = _inventoryIdx;
+
+		Operation->DraggingSlot = this;
+
+
 		OutOperation = Operation;
 
 		if (DragWidgetClass)
@@ -157,7 +168,8 @@ bool UInventorySlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 
 	UDragDropSlot* Operation = Cast<UDragDropSlot>(InOperation);
 
-	if (Operation) { RequestSwap(Operation->PrevInventoryIdx, Operation->PrevSlotIndex);}
+
+	if (Operation) { RequestSwap(Operation->DraggingSlot); }
 
 	RequestSlotAction(SlotData, ESlotActionType::DRAG, false);
 
@@ -165,12 +177,13 @@ bool UInventorySlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 }
 
 
-void UInventorySlot::RequestSwap(int32 OtherInventoryIdx, int32 OtherSlotIdx)
-{
-	OnSwapRequested.Broadcast(OtherInventoryIdx, OtherSlotIdx, this->_inventoryIdx, this->_idx);
-}
-
 void UInventorySlot::RequestSlotAction(FSlotData data, ESlotActionType type, bool bActive)
 {
 	OnSlotActionRequested.Broadcast(SlotData, type, bActive);
+}
+
+
+void UInventorySlot::RequestSwap(UInventorySlot* SwapSlot)
+{
+	OnSwapRequested.Broadcast(this, SwapSlot);
 }

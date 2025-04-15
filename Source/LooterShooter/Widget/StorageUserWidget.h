@@ -9,13 +9,15 @@
 #include "../Item/ItemData.h"
 #include "Components/Button.h"
 #include "../Inventory/InventoryBase.h"
+
+
+
 #include "StorageUserWidget.generated.h"
 
 
 
 UCLASS()
 class LOOTERSHOOTER_API UStorageUserWidget : public UInventoryBase
-//class LOOTERSHOOTER_API UStorageUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
@@ -23,23 +25,28 @@ class LOOTERSHOOTER_API UStorageUserWidget : public UInventoryBase
 public:
 	virtual void NativeConstruct() override;
 
-	void InitSlots(UVerticalBox* ParentSlot, TArray<UInventorySlot*>& SlotArray, int32 InventoryIdx, int32 rowSize, int32 colSize);
-	void HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex);
-	void ChangeOtherInventoryData(FSlotData& Item, const UInventorySlot& slot);
-	UInventorySlot* GetInventorySlot(int32 InventoryIdx, int32 slotIdx);
+	void LoadInventoryData();
+	void InitWidget();
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	UInventorySlot* EquipInventorySlot;
+
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	//UInventorySlot* WorldInventorySlot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	UInventorySlot* ArmorSlot;
 
 
 	UPROPERTY(meta = (BindWidget))
-		UVerticalBox* StorageSlots;
+	UVerticalBox* PlayerInventory;
+
+	//UPROPERTY(meta = (BindWidget))
+	//UVerticalBox* WorldInventory;
 
 	UPROPERTY(meta = (BindWidget))
-		UVerticalBox* InventorySlots;
-
-	UPROPERTY(EditAnywhere, Category = "Storage")
-		int32 RowSize;
-
-	UPROPERTY(EditAnywhere, Category = "Storage")
-		int32 ColSize;
+	UVerticalBox* EquipInventory;
 
 
 	UPROPERTY(meta = (BindWidget))
@@ -48,6 +55,6 @@ public:
 	UFUNCTION()
 	void OnReturnMainButtonClicked();
 
-	TArray<UInventorySlot*> PlayerInventorySlotArray;
-	TArray<UInventorySlot*> StorageSlotArray;
+	TArray<UInventorySlot*> PlayerInventoryArray;
+	TArray<UInventorySlot*> EquipInventoryArray;
 };

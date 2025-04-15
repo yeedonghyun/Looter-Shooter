@@ -11,9 +11,11 @@ UENUM(BlueprintType)
 enum class EItemType : uint8
 {
 	WEAPON UMETA(DisplayName = "Weapon"),
+	ARMOR UMETA(DisplayName = "ARMOR"),
 	AMMO UMETA(DisplayName = "Ammo"),
 	HEALING UMETA(DisplayName = "Healing"),
-	BAG UMETA(DisplayName = "Bag")
+	BAG UMETA(DisplayName = "Bag"),
+	STUFF UMETA(DisplayName = "Stuff")
 };
 
 
@@ -26,10 +28,10 @@ public:
 	FItemData()
 	{
 		// 초기값 설정
-		Name = TEXT("");   // 빈 문자열
-		Value = 0;         // 기본값 0
-		Weight = 0;        // 기본값 0
-		Type = EItemType::WEAPON;  // 기본값: WEAPON
+		Name = TEXT(""); 
+		Value = 0;      
+		Weight = 0;       
+		Type = EItemType::STUFF; 
 	}
 
 	void SetItemFromSlotData(FSlotData data);

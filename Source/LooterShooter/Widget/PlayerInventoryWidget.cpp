@@ -6,33 +6,23 @@ void UPlayerInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	//bInventoryActive = true;
+	InitWidget();
+	LoadInventoryData();
+}
+
+void UPlayerInventoryWidget::InitWidget()
+{
 	bOtherInventory = false;
 	bDragging = false;
 
-	WorldInventorySlot->InitIdxes(-1, 1);
 	WorldInventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
 	WorldInventorySlot->SetVisibility(ESlateVisibility::Hidden);
 
-	EquipInventorySlot->InitIdxes(-1, 2);
 	EquipInventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
-	EquipInventorySlot->SetVisibility(ESlateVisibility::Visible);
+	EquipInventorySlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 
-	CreateSlots(PlayerInventory, PlayerInventoryArray, 0, InventoryRowSize, InventoryColSize);
-	LoadSelcectSlotData(PlayerInventoryArray, "InventoryItems");
-
-	if (bEquipInventory)
-	{
-		if (TSubclassOf<AItem_bag> TestItemClass = LoadClass<AItem_bag>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) // 나중에 storarge 형태등으로
-		{
-			AItem_bag* DefaultBag = TestItemClass->GetDefaultObject<AItem_bag>();
-			CreateSlots(EquipInventory, EquipInventoryArray, 2, DefaultBag->Width, DefaultBag->Height);
-			EquipInventorySlot->SetSlotFromItem(DefaultBag->ItemData);
-		}
-
-		LoadSelcectSlotData(EquipInventoryArray, "PlayerBag");
-	}
-
+	ArmorSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	ArmorSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 
 	if (TSubclassOf<UUserWidget> ToolTip = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Inventory/BP_Tooltip.BP_Tooltip_C'")))
 	{
@@ -41,31 +31,69 @@ void UPlayerInventoryWidget::NativeConstruct()
 		if (SlotToolTip)
 		{
 			SlotToolTip->AddToViewport(999);
+			SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
+}
+
+void UPlayerInventoryWidget::LoadInventoryData()
+{
+	USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+
+	CreateSlots(PlayerInventory, PlayerInventoryArray, 0, SaveData->InventoryRowSize, SaveData->InventoryColSize);
+
+	if (SaveData->InventoryItems.Num() != 0)
+	{
+		SetArrayData(PlayerInventoryArray, SaveData->InventoryItems);
+	}
+
+	if (SaveData->bEquipInventory)
+	{
+		FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
+
+		if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
+		{
+			AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
+			CreateSlots(EquipInventory, EquipInventoryArray, 2, DefaultBag->Width, DefaultBag->Height);
+			EquipInventorySlot->SetSlotFromItem(DefaultBag->ItemData);
+		}
+
+		if (SaveData->EquipInventoryItems.Num() != 0)
+		{
+			SetArrayData(EquipInventoryArray, SaveData->EquipInventoryItems);
 		}
 	}
 
-	SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
+	PlayerHealth = SaveData->PlayerHealth;
+	PlayerArmor = SaveData->PlayerArmor;
 
-
-	FString Info = FString::Printf(
-		TEXT("Health : %d\nArmor : %d\n"),
-		5,
-		4
+	FString Info = FString::Printf(TEXT("Health : %d\nArmor : %d\n"),
+		PlayerHealth,
+		PlayerArmor
 	);
 
 	PlayerStatus->SetText(FText::FromString(Info));
 }
 
 
-void UPlayerInventoryWidget::AddItemEmptySlot(AItemBase* AimedItem)
+void UPlayerInventoryWidget::AddItemEmptySlot(AItemBase* AimedItem) // 꽉차면 안들어가게
 {
 	int emptyIdx = FindEmptySlot(PlayerInventoryArray);
 	PlayerInventoryArray[emptyIdx]->SetSlotFromItem(AimedItem->ItemData);
-
-	SaveSelectSlotData(PlayerInventoryArray, "Inventory");
 }
 
-void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
+int UPlayerInventoryWidget::FindEmptySlot(TArray<UInventorySlot*>& SlotArray)
+{
+	for (int i = 0; i < SlotArray.Num(); i++)
+	{
+		if (!SlotArray[i]->SlotData.bHaveItem) { return i; }
+	}
+
+	return -1;
+}
+
+
+void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem) // 드래그앤 드랍시를 생각
 {
 	if (WorldInventoryArray.Num() > 0)
 	{
@@ -93,6 +121,13 @@ void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
 
 void UPlayerInventoryWidget::DeleteWorldInventory()
 {
+	TArray<FSlotData>& Items = Bag->savedItems;
+
+	for (int32 i = 0; i < WorldInventoryArray.Num(); i++)
+	{
+		Items[i] = WorldInventoryArray[i]->SlotData;
+	}
+
 	for (int32 i = 0; i < WorldInventoryArray.Num(); i++)
 	{
 		WorldInventoryArray[i]->RemoveFromParent();
@@ -101,21 +136,8 @@ void UPlayerInventoryWidget::DeleteWorldInventory()
 	WorldInventoryArray.Empty();
 	bOtherInventory = false;
 	WorldInventorySlot->SetVisibility(ESlateVisibility::Hidden);
-
 }
 
-
-
-UInventorySlot* UPlayerInventoryWidget::GetInventorySlot(int32 InventoryIdx, int32 slotIdx)
-{
-	switch (InventoryIdx)
-	{
-	case(0): return PlayerInventoryArray[slotIdx];
-	case(1):return WorldInventoryArray[slotIdx];
-	case(2):return EquipInventoryArray[slotIdx];
-	}
-	return nullptr;
-}
 
 
 void UPlayerInventoryWidget::ToggleInventory(bool bOpen)
@@ -143,37 +165,4 @@ void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor
 	}
 
 	SetVisibility(Visible);
-}
-
-
-void UPlayerInventoryWidget::HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex)
-{
-	if (FromIndex == -1 || ToIndex == -1)
-	{
-		if (FromIndex == -1 && ToIndex == -1 && FromInventorIdx != ToInventoryIdx)
-		{
-			for (int i = 0; i < EquipInventoryArray.Num(); i++)
-			{
-				SwapSlot(EquipInventoryArray[i], WorldInventoryArray[i]);
-			}
-		}
-	}
-
-	else
-	{
-		UInventorySlot* From = GetInventorySlot(FromInventorIdx, FromIndex);
-		UInventorySlot* To = GetInventorySlot(ToInventoryIdx, ToIndex);
-		SwapSlot(From, To);
-	}
-
-	SaveSelectSlotData(PlayerInventoryArray, "Inventory");
-
-	TArray<FSlotData>& Items = Bag->savedItems;
-
-	for (int i = 0; i < WorldInventoryArray.Num(); i++)
-	{
-		Items[i] = WorldInventoryArray[i]->SlotData;
-	}
-
-
 }

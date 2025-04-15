@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "../Item/ItemData.h"
-//#include "../Widget/PlayerInventoryWidget.h"
 
 #include "SaveManager.generated.h"
 
@@ -19,36 +18,27 @@ class LOOTERSHOOTER_API USaveManager : public USaveGame
 	
 
 public:
-	//USaveManager();
-	UFUNCTION(BlueprintCallable, Category = "Save")
-		static void SaveSelectData(const TArray<FSlotData>& Items, const FString& SaveSlotName, const FString& DataName);
-	UFUNCTION(BlueprintCallable, Category = "Save")
-		static TArray<FSlotData> LoadSelectData(const FString& SaveSlotName, const FString& DataName);
 
+	USaveManager();
+	static USaveManager* GetSaveInstance(const FString& SaveSlotName);
+	static void SaveData(const FString& SaveSlotName);
 
-	UFUNCTION(BlueprintCallable, Category = "Save")
-		static void SaveData(const FString& SaveSlotName);
-	UFUNCTION(BlueprintCallable, Category = "Save")
-		static USaveManager* GetSaveInstance(const FString& SaveSlotName);
-	UFUNCTION(BlueprintCallable, Category = "Save")
-		static void SaveInventoryItems(const TArray<FSlotData>& Items, const FString& SaveSlotName);
-	UFUNCTION(BlueprintCallable, Category = "Save")
-		static TArray<FSlotData> LoadInventoryItems(const FString& SaveSlotName);
+	int32 InventoryRowSize;
+	int32 InventoryColSize;
+	TArray<FSlotData> InventoryItems;
 
+	bool bEquipInventory;
+	FString EquipInventoryName;
+	TArray<FSlotData> EquipInventoryItems;
 
+	bool bEquipArmor;
+	FString EquipArmorName;
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveData")
-		TArray<FSlotData> InventoryItems;
+	int32 StorageRowSize;
+	int32 StorageColSize;
+	TArray<FSlotData> StorageItems;
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveData")
-		TArray<FSlotData> EquipInventoryItems;
+	int32 PlayerHealth;
+	int32 PlayerArmor;
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveData")
-		TArray<FSlotData> StorageItems;
-
-	UPROPERTY(VisibleAnywhere, Category = "SaveData")
-		int32 PlayerHealth;
-
-	UPROPERTY(VisibleAnywhere, Category = "SaveData")
-		int32 PlayerArmor;
 };

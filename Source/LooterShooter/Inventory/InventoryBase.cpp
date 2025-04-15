@@ -28,7 +28,7 @@ void UInventoryBase::CreateSlots(UVerticalBox* ParentSlot, TArray<UInventorySlot
 				{
 					if (UInventorySlot* InventorySlot = CreateWidget<UInventorySlot>(GetWorld(), InventoryClass))
 					{
-						InventorySlot->InitInventorySlot((i * colSize) + j, InventoryIdx, false, i, j);
+						InventorySlot->InitInventorySlot((i * colSize) + j, InventoryIdx, EItemType::STUFF);
 						InventorySlot->OnSwapRequested.AddUObject(this, &UInventoryBase::HandleSwapRequest);
 						InventorySlot->OnSlotActionRequested.AddUObject(this, &UInventoryBase::HandleSlotActionRequest);
 						HorizontalBox->AddChild(InventorySlot);
@@ -41,45 +41,26 @@ void UInventoryBase::CreateSlots(UVerticalBox* ParentSlot, TArray<UInventorySlot
 }
 
 
-void UInventoryBase::SaveSelectSlotData(TArray<UInventorySlot*>& SlotArray, const FString& DataName)
+void UInventoryBase::SetArrayData(TArray<UInventorySlot*>& SlotArray, TArray<FSlotData> ArrayData)
 {
-	TArray<FSlotData> Items = ConvertSlotToData(SlotArray);
-	USaveManager::SaveSelectData(Items, "Save1", DataName);
-}
-
-void UInventoryBase::LoadSelcectSlotData(TArray<UInventorySlot*>& SlotArray, const FString& DataName)
-{
-	TArray<FSlotData> Items = USaveManager::LoadSelectData("Save1", DataName);
-
-	if (Items.Num() != 0)
+	for (int32 i = 0; i < SlotArray.Num(); i++)
 	{
-		for (int32 i = 0; i < SlotArray.Num(); i++)
+		if (ArrayData[i].bHaveItem)
 		{
-			if (Items[i].bHaveItem)
-			{
-				SlotArray[i]->SetSlotFromSlot(Items[i]);
-			}
+			SlotArray[i]->SetSlotFromSlot(ArrayData[i]);
 		}
 	}
 }
 
 
-int UInventoryBase::FindEmptySlot(TArray<UInventorySlot*>& SlotArray)
-{
-	for (int i = 0; i < SlotArray.Num(); i++)
-	{
-		if (!SlotArray[i]->SlotData.bHaveItem) { return i; }
-	}
-	return -1;
-}
+
+
 
 TArray<FSlotData> UInventoryBase::ConvertSlotToData(TArray<UInventorySlot*>& SlotArray)
 {
 	TArray<FSlotData> Items;
-	for (int i = 0; i < SlotArray.Num(); i++)
-	{
-		Items.Add(SlotArray[i]->SlotData);
-	}
+	for (int i = 0; i < SlotArray.Num(); i++) { Items.Add(SlotArray[i]->SlotData); }
+
 	return Items;
 }
 
@@ -92,6 +73,7 @@ void UInventoryBase::DeleteSlotArray(TArray<UInventorySlot*>& SlotArray)
 	SlotArray.Empty();
 }
 
+//from to 좀
 void UInventoryBase::SwapSlot(UInventorySlot*& From, UInventorySlot*& To)
 {
 	std::swap(From->SlotData, To->SlotData);
@@ -107,41 +89,102 @@ void UInventoryBase::SwapSlot(UInventorySlot*& From, UInventorySlot*& To)
 }
 
 
-
-void UInventoryBase::HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex)
+void UInventoryBase::ApplyStatByType(EItemType Type, int32 Value)
 {
+	if (Type == EItemType::ARMOR) PlayerArmor = Value;
+	//else if (Type == EItemType::HEALING) PlayerHealth = Value;
+
+	// 상태 UI 업데이트
+	FString Info = FString::Printf(TEXT("Health : %d\nArmor : %d\n"),
+		PlayerHealth,
+		PlayerArmor
+	);
+
+	PlayerStatus->SetText(FText::FromString(Info));
+}
+
+//드래그블록 아래 FROM
+void UInventoryBase::HandleSwapRequest(UInventorySlot* From, UInventorySlot* To)
+{
+	if (From->bEquipped)
+	{
+		if (From->SlotType != To->SlotData.Type) { return; }
+
+		else
+		{
+			ApplyStatByType(From->SlotType, To->SlotData.Value);
+		}
+	}
+
+	else if (To->bEquipped)
+	{
+		if (From->SlotData.bHaveItem)
+		{
+			if (To->SlotType != From->SlotData.Type) { return; }
+
+			else
+			{
+				ApplyStatByType(From->SlotType, From->SlotData.Value);
+			}
+
+		}
+
+		else
+		{
+			ApplyStatByType(To->SlotType, 0);
+		}
+
+	}
+
+	SwapSlot(From, To);
+
 }
 
 void UInventoryBase::HandleSlotActionRequest(FSlotData data, ESlotActionType type, bool bActive)
 {
 	switch (type)
 	{
-
 	case ESlotActionType::DROP:
 		break;
+
 	case ESlotActionType::USE:
+		UseItem(data);
 		break;
+
 	case ESlotActionType::CHECK:
-
-		if (!bDragging)
-		{
-			CheckToolTip(data, bActive);
-		}
-
+		if (!bDragging) { CheckToolTip(data, bActive); }
 		break;
+
 	case ESlotActionType::DRAG:
 		bDragging = bActive;
-		if (bDragging)
-		{
-			CheckToolTip(data, !bActive);
-		}
-
+		if (bDragging) { CheckToolTip(data, !bActive); }
 		break;
+
 	default:
 		break;
 	}
 
 }
+
+void UInventoryBase::UseItem(FSlotData data)
+{
+	switch (data.Type)
+	{
+	case EItemType::HEALING:
+
+		PlayerHealth += data.Value;
+		break;
+	}
+
+
+	FString Info = FString::Printf(TEXT("Health : %d\nArmor : %d\n"),
+		PlayerHealth,
+		PlayerArmor
+	);
+
+	PlayerStatus->SetText(FText::FromString(Info));
+}
+
 
 
 void UInventoryBase::CheckToolTip(FSlotData data, bool bActive)

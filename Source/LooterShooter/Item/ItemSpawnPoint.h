@@ -19,7 +19,9 @@ protected:
     void SpawnItem();
 
 public:
-    UPROPERTY(EditAnywhere, Category = "Spawning")
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget), Category = "Spawning")
+    //UPROPERTY(EditAnywhere, Category = "Spawning")
     TArray<TSubclassOf<class AItemBase>> ItemClasses;
 
     UPROPERTY(EditAnywhere, Category = "Spawning")

@@ -1,5 +1,6 @@
-#include "Kismet/KismetMathLibrary.h"
+
 #include "EnemySpawnPoint.h"
+#include "Kismet/KismetMathLibrary.h"
 
 AEnemySpawnPoint::AEnemySpawnPoint()
 {

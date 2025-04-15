@@ -9,6 +9,9 @@
 /**
  * 
  */
+
+class UInventorySlot;
+
 UCLASS()
 class LOOTERSHOOTER_API UDragDropSlot : public UDragDropOperation
 {
@@ -21,4 +24,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere)
 		int32 PrevInventoryIdx;
+
+	UPROPERTY(VisibleAnywhere)
+		UInventorySlot* DraggingSlot;
 };

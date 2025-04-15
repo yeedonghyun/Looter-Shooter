@@ -4,134 +4,110 @@
 void UStorageUserWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	InitSlots(StorageSlots, StorageSlotArray,1, RowSize, ColSize);
-	InitSlots(InventorySlots, PlayerInventorySlotArray,0, RowSize, ColSize);
 
-	//TArray<FSlotData> Items = USaveManager::LoadInventoryItems("Save1");
+	InitWidget();
+	LoadInventoryData();
 
-	//if (Items.Num() != 0)
+	//if (ReturnMain)
 	//{
-	//	for (int32 i = 0; i < Items.Num(); i++)
-	//	{
-	//		if (Items[i].bHaveItem)
-	//		{
-	//			PlayerInventorySlotArray[i]->SetSlotFromSlot(Items[i]);
-	//		}
-	//	}
+	//	ReturnMain->OnClicked.AddDynamic(this, &UStorageUserWidget::OnReturnMainButtonClicked);
 	//}
 
-	//Items = USaveManager::LoadSelectData("Save1","Storage");
+}
 
-	//if (Items.Num() != 0)
-	//{
-	//	for (int32 i = 0; i < Items.Num(); i++)
-	//	{
-	//		if (Items[i].bHaveItem)
-	//		{
-	//			StorageSlotArray[i]->SetSlotFromSlot(Items[i]);
-	//		}
-	//	}
-	//}
+void UStorageUserWidget::InitWidget()
+{
+	bDragging = false;
 
+	//WorldInventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	//WorldInventorySlot->SetVisibility(ESlateVisibility::Hidden);
 
+	//EquipInventorySlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	EquipInventorySlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 
-	if (ReturnMain)
+	//ArmorSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	ArmorSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+
+	if (TSubclassOf<UUserWidget> ToolTip = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Inventory/BP_Tooltip.BP_Tooltip_C'")))
 	{
-		ReturnMain->OnClicked.AddDynamic(this, &UStorageUserWidget::OnReturnMainButtonClicked);
+		SlotToolTip = CreateWidget<UTooltip>(GetWorld(), ToolTip);
+
+		if (SlotToolTip)
+		{
+			SlotToolTip->AddToViewport(999);
+			SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
+}
+
+void UStorageUserWidget::LoadInventoryData()
+{
+	USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+
+	CreateSlots(PlayerInventory, PlayerInventoryArray, 0, SaveData->InventoryRowSize, SaveData->InventoryColSize);
+
+	if (SaveData->InventoryItems.Num() != 0)
+	{
+		SetArrayData(PlayerInventoryArray, SaveData->InventoryItems);
 	}
 
+	if (SaveData->bEquipInventory)
+	{
+		FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
+
+		if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
+		{
+			AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
+			CreateSlots(EquipInventory, EquipInventoryArray, 2, DefaultBag->Width, DefaultBag->Height);
+			EquipInventorySlot->SetSlotFromItem(DefaultBag->ItemData);
+		}
+
+		if (SaveData->EquipInventoryItems.Num() != 0)
+		{
+			SetArrayData(EquipInventoryArray, SaveData->EquipInventoryItems);
+		}
+	}
+
+	PlayerHealth = SaveData->PlayerHealth;
+	PlayerArmor = SaveData->PlayerArmor;
+
+	FString Info = FString::Printf(TEXT("Health : %d\nArmor : %d\n"),
+		PlayerHealth,
+		PlayerArmor
+	);
+
+	PlayerStatus->SetText(FText::FromString(Info));
 }
 
 
 void UStorageUserWidget::OnReturnMainButtonClicked()
 {
-	this->RemoveFromParent();
+	//this->RemoveFromParent();
 
-	if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_SelectMapUserWidget.BP_SelectMapUserWidget_C'")))
-	{
-		UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass);
-		if (SelectMapWidget)
-		{
-			SelectMapWidget->AddToViewport();
-		}
-	}
+	//if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_SelectMapUserWidget.BP_SelectMapUserWidget_C'")))
+	//{
+	//	UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass);
+	//	if (SelectMapWidget)
+	//	{
+	//		SelectMapWidget->AddToViewport();
+	//	}
+	//}
 
-	TArray<FSlotData> InventoryItems;
+	//TArray<FSlotData> InventoryItems;
 
-	for (int i = 0; i < PlayerInventorySlotArray.Num(); i++)
-	{
-		InventoryItems.Add(PlayerInventorySlotArray[i]->SlotData);
-	}
+	//for (int i = 0; i < PlayerInventorySlotArray.Num(); i++)
+	//{
+	//	InventoryItems.Add(PlayerInventorySlotArray[i]->SlotData);
+	//}
 
-	//USaveManager::SaveSelectData(InventoryItems, "Save1", "Inventory");
+	////USaveManager::SaveSelectData(InventoryItems, "Save1", "Inventory");
 
-	TArray<FSlotData> StaorageItems;
+	//TArray<FSlotData> StaorageItems;
 
-	for (int i = 0; i < StorageSlotArray.Num(); i++)
-	{
-		StaorageItems.Add(StorageSlotArray[i]->SlotData);
-	}
+	//for (int i = 0; i < StorageSlotArray.Num(); i++)
+	//{
+	//	StaorageItems.Add(StorageSlotArray[i]->SlotData);
+	//}
 
-	//USaveManager::SaveSelectData(StaorageItems, "Save1", "Storage");
-}
-
-
-void UStorageUserWidget::InitSlots(UVerticalBox* ParentSlot, TArray<UInventorySlot*>& SlotArray, int32 InventoryIdx, int32 rowSize, int32 colSize)
-{
-	TSubclassOf<UUserWidget> InventoryClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Inventory/BP_InventorySlot.BP_InventorySlot_C'"));
-
-	if (!InventoryClass)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Can't find Class")));
-		return;
-	}
-
-	if (ParentSlot)
-	{
-		for (int32 i = 0; i < rowSize; i++)
-		{
-			// 새로운 가로 박스 생성
-			if (UHorizontalBox* HorizontalBox = NewObject<UHorizontalBox>(ParentSlot))
-			{
-				ParentSlot->AddChild(HorizontalBox);
-
-				for (int32 j = 0; j < colSize; j++)
-				{
-					if (UInventorySlot* InventorySlot = CreateWidget<UInventorySlot>(GetWorld(), InventoryClass))
-					{
-						InventorySlot->InitInventorySlot((i * colSize) + j, InventoryIdx, false, i, j);
-						InventorySlot->OnSwapRequested.AddUObject(this, &UStorageUserWidget::HandleSwapRequest);
-
-						HorizontalBox->AddChild(InventorySlot);
-						SlotArray.Add(InventorySlot);
-					}
-				}
-			}
-		}
-
-	}
-}
-
-
-void UStorageUserWidget::HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex)
-{
-	UInventorySlot* From = GetInventorySlot(FromInventorIdx, FromIndex);
-	UInventorySlot* To = GetInventorySlot(ToInventoryIdx, ToIndex);
-
-	SwapSlot(From, To);
-}
-
-UInventorySlot* UStorageUserWidget::GetInventorySlot(int32 InventoryIdx, int32 slotIdx)
-{
-	switch (InventoryIdx)
-	{
-	case(0): return PlayerInventorySlotArray[slotIdx];
-	case(1):return StorageSlotArray[slotIdx];
-	}
-	return nullptr;
-}
-
-void UStorageUserWidget::ChangeOtherInventoryData(FSlotData& Item, const UInventorySlot& slot)
-{
-	Item = slot.SlotData;
+	////USaveManager::SaveSelectData(StaorageItems, "Save1", "Storage");
 }

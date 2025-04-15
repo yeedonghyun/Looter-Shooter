@@ -26,18 +26,17 @@ class LOOTERSHOOTER_API UPlayerInventoryWidget : public UInventoryBase
 public:
 	virtual void NativeConstruct() override;
 
+	void InitWidget();
+	void LoadInventoryData();
 
+
+	int FindEmptySlot(TArray<UInventorySlot*>& SlotArray);
 	void AddItemEmptySlot(AItemBase* AimedItem);
 	void CreateWorldInventory(AItemBase* AimedItem);
 	void DeleteWorldInventory();
 
-	UInventorySlot* GetInventorySlot(int32 InventoryIdx, int32 slotIdx);
-
 	void ToggleInventory(bool bOpen);
 	void SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData);
-
-
-	virtual void HandleSwapRequest(int32 FromInventorIdx, int32 FromIndex, int32 ToInventoryIdx, int32 ToIndex) override;
 
 
 protected:
@@ -48,6 +47,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 		UInventorySlot* WorldInventorySlot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+		UInventorySlot* ArmorSlot;
+
 
 	UPROPERTY(meta = (BindWidget))
 		UVerticalBox* PlayerInventory;
@@ -67,19 +70,13 @@ public:
 	TArray<UInventorySlot*> WorldInventoryArray;
 	TArray<UInventorySlot*> EquipInventoryArray;
 
-	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 InventoryRowSize;
-
-	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 InventoryColSize;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	bool bEquipInventory;
 
 
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-		UTextBlock* PlayerStatus;
 
 	bool bOtherInventory;
 
