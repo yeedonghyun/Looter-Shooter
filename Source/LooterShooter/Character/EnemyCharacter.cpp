@@ -1,4 +1,5 @@
 #include "EnemyCharacter.h"
+#include "AIController.h"
 #include "Kismet/GameplayStatics.h"
 
 AEnemyCharacter::AEnemyCharacter()
@@ -8,7 +9,6 @@ AEnemyCharacter::AEnemyCharacter()
     MaxDetectionRange = 3000;
     MaxDetectionAngle = 180;
 
-    RotationSpeed = 90;
     FireRate = 0.2f;
     DetecteRate = 0.1f;
     bSeePlayer = false;
@@ -30,8 +30,6 @@ void AEnemyCharacter::BeginPlay()
 
     BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'"));
     TargetPlayer = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
-
-    GetWorldTimerManager().SetTimer(DetecteTimerHandle, this, &AEnemyCharacter::DetectePlayer, DetecteRate, true);
 
     TArray<UActorComponent*> Components;
     GetComponents(Components);
@@ -76,17 +74,18 @@ void AEnemyCharacter::BeginPlay()
     }
 }
 
-void AEnemyCharacter::DetectePlayer()
-{
-	IsSeePlayer();
-    Fire();    
-}
-
 void AEnemyCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    RotateToPlayer(DeltaTime);
+    if (IsDetectPlayer())
+    {
+        AAIController* AIController = Cast<AAIController>(GetController());
+        if (AIController)
+        {
+            AIController->StopMovement();            
+        }
+    }
 }
 
 void AEnemyCharacter::UpdateWalkSpeed(float NewWalkSpeed)
@@ -97,56 +96,132 @@ void AEnemyCharacter::UpdateWalkSpeed(float NewWalkSpeed)
     }
 }
 
-void AEnemyCharacter::IsSeePlayer()
+bool AEnemyCharacter::IsDetectPlayer()
 {
-    if (!TargetPlayer) return;
+    if (!TargetPlayer) {
+        bSeePlayer = false;
+        LostPlayer = false;
+        return false;
+    }
 
     FVector EnemyLocation = GetActorLocation();
     FVector PlayerLocation = TargetPlayer->GetActorLocation();
+
+    FHitResult Hit;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
+
+    bool bHit = GetWorld()->SweepSingleByChannel(
+        Hit,
+        EnemyLocation,
+        PlayerLocation,
+        FQuat::Identity,
+        ECC_WorldDynamic,
+        FCollisionShape::MakeSphere(50.f),
+        Params
+    );
+
+    if (!bHit || !Hit.GetActor()->ActorHasTag("Player")) {
+        if (bSeePlayer) {
+            LastKnownPlayerLocation = TargetPlayer->GetActorLocation();
+            LostPlayer = true;
+        }
+        bSeePlayer = false;
+        return false;
+    }
+
     FVector ToPlayer = (PlayerLocation - EnemyLocation).GetSafeNormal();
     FVector Forward = GetActorForwardVector();
 
     float Distance = FVector::Dist(EnemyLocation, PlayerLocation);
-    if (Distance > MaxDetectionRange) {
-		bSeePlayer = false;
-        return;
-    }
-
     float Dot = FVector::DotProduct(Forward, ToPlayer);
     float Angle = FMath::Acos(Dot) * (180.f / PI);
 
-    if (Angle > MaxDetectionAngle) {
+    if (Distance > MaxDetectionRange || Angle > MaxDetectionAngle) {
+        if (bSeePlayer) {
+            LastKnownPlayerLocation = TargetPlayer->GetActorLocation();
+            LostPlayer = true;
+        }
         bSeePlayer = false;
-        return;
+        return false;
     }
 
-    FHitResult HitResult;
-    FCollisionQueryParams Params;
-    Params.AddIgnoredActor(this);
-
-    bool bBlocked = GetWorld()->LineTraceSingleByChannel(HitResult, EnemyLocation, PlayerLocation, ECC_Visibility, Params);
-
-    bSeePlayer = false;
+    bSeePlayer = true;
+    return true;
 }
 
-void AEnemyCharacter::RotateToPlayer(float DeltaTime)
+bool AEnemyCharacter::IsAimedPlayer()
 {
-    if (!TargetPlayer) return;
+    if (!TargetPlayer) 
+        return false;
+    
+    FVector Forward = GetActorForwardVector();
+    FVector ToPlayer = (TargetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    
+    float Dot = FVector::DotProduct(Forward, ToPlayer);
+    float Angle = FMath::Acos(Dot) * (180.f / PI);
+    
+    return Angle < 10.0f;
+}
 
-    FVector Direction = (TargetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-    FRotator TargetRotation = Direction.Rotation();
+bool AEnemyCharacter::MoveToLocation(FVector Location, float DeltaTime)
+{
+    float Distance = FVector::Dist(Location, GetActorLocation());
+    if (Distance < 1.f)
+    {
+        return true;
+    }
 
+    FVector Direction = (Location - GetActorLocation()).GetSafeNormal();
+    FRotator NewRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
+    SetActorRotation(NewRotation);
+
+    if (GetMovementComponent())
+    {
+        float Speed = GetMovementComponent()->GetMaxSpeed();
+        FVector NewLocation = GetActorLocation() + Direction * Speed * DeltaTime;
+        SetActorLocation(NewLocation);
+    }
+
+    return false;
+}
+
+bool AEnemyCharacter::Rotate(float Degree, float RotationSpeed)
+{
     FRotator CurrentRotation = GetActorRotation();
-    float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetRotation.Yaw);
-    float TurnAmount = FMath::Clamp(DeltaYaw, -RotationSpeed * DeltaTime, RotationSpeed * DeltaTime);
+    CurrentRotation.Yaw += RotationSpeed * GetWorld()->GetDeltaSeconds();
+    if (CurrentRotation.Yaw >= Degree)
+    {
+        CurrentRotation.Yaw -= Degree;
+    }
 
-    CurrentRotation.Yaw += TurnAmount;
     SetActorRotation(CurrentRotation);
+
+	FRotator TargetRotation = FRotator(CurrentRotation.Pitch, Degree, CurrentRotation.Roll);
+
+    float YawDiff = FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetRotation.Yaw));
+    return YawDiff < 1.f;
+}
+
+bool AEnemyCharacter::RotateToTarget(AActor* TargetActor, float RotationSpeed)
+{
+    if (!TargetActor) return false;
+
+    FVector Direction = (TargetActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    float TargetYaw = Direction.Rotation().Yaw;
+    float CurrentYaw = GetActorRotation().Yaw;
+
+    float NewYaw = FMath::FixedTurn(CurrentYaw, TargetYaw, RotationSpeed * GetWorld()->GetDeltaSeconds());
+    FRotator NewRotation(0.f, NewYaw, 0.f);
+	SetActorRotation(NewRotation);
+
+    float YawDiff = FMath::Abs(FMath::FindDeltaAngleDegrees(NewYaw, TargetYaw));
+    return YawDiff < 1.f;
 }
 
 void AEnemyCharacter::Fire()
 {
-    if (!bSeePlayer || bShoot || !IsFacingPlayer())
+    if (!bSeePlayer || bShoot)
         return;
 
     if (BulletClass && Weapon) {
@@ -163,17 +238,4 @@ void AEnemyCharacter::Fire()
 void AEnemyCharacter::ResetShoot()
 {
     bShoot = false;
-}
-
-bool AEnemyCharacter::IsFacingPlayer()
-{
-    if (!TargetPlayer) return false;
-
-    FVector Forward = GetActorForwardVector();
-    FVector ToPlayer = (TargetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-    float Dot = FVector::DotProduct(Forward, ToPlayer);
-    float Angle = FMath::Acos(Dot) * (180.f / PI);
-
-    return Angle < 10.0f;
 }

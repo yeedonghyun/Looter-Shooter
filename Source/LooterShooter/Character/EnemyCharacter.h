@@ -33,7 +33,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Action")
-	EEnemyState CurrentState; // EnemyState를 UPROPERTY로 선언
+	EEnemyState CurrentState;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* ShootAnimation;
@@ -53,25 +53,56 @@ public:
 	void UpdateWalkSpeed(float NewWalkSpeed);
 
 protected:
-	void IsSeePlayer();
-	void RotateToPlayer(float DeltaTime);
-	void Fire();
-	void ResetShoot();
-	void DetectePlayer();
 
-	bool IsFacingPlayer();
+	UFUNCTION(BlueprintCallable)
+	bool IsDetectPlayer();
+
+	UFUNCTION(BlueprintCallable)
+	bool IsAimedPlayer();
+
+	UFUNCTION(BlueprintCallable)
+	void Fire();
+
+	UFUNCTION(BlueprintCallable)
+	void ResetShoot();
+
+	UFUNCTION(BlueprintCallable)
+	void ResetLastKnownPlayerLocation() { LastKnownPlayerLocation = FVector::ZeroVector; }
+
+	UFUNCTION(BlueprintCallable)
+	bool MoveToLocation(FVector Location, float DeltaTime);
+
+	UFUNCTION(BlueprintCallable)
+	bool Rotate(float Degree, float RotationSpeed);
+
+	UFUNCTION(BlueprintCallable)
+	bool RotateToTarget(AActor* TargetActor, float RotationSpeed);
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetLastKnownPlayerLocation() { return LastKnownPlayerLocation; }
+
+	UFUNCTION(BlueprintCallable)
+	bool GetLostPlayer() { return LostPlayer; }
+
+	UFUNCTION(BlueprintCallable)
+	void SetLostPlayer(bool bLost) { LostPlayer = bLost; }
+
+	UFUNCTION(BlueprintCallable)
+	bool GetDetectePlayer() { return bSeePlayer; }
+
 	bool bSeePlayer;
 	bool bShoot;
+	bool LostPlayer;
 
 	FTimerHandle ShootResetTimerHandle;
-	FTimerHandle DetecteTimerHandle;
 
 	float MaxDetectionRange;
 	float MaxDetectionAngle;
-	float RotationSpeed;
 	float FireRate;
 	float DetecteRate;
-	float CachedDeltaTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector LastKnownPlayerLocation;
 
 	TSubclassOf<AActor> BulletClass;
 	APlayerCharacter* TargetPlayer;
