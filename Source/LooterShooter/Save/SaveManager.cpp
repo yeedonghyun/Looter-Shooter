@@ -9,14 +9,14 @@ USaveManager::USaveManager()
 	InventoryRowSize = 2;
 	InventoryColSize = 5;
 
-	bEquipInventory = true;
+	bEquipInventory = false;
 	EquipInventoryName = "bag";
 
 	bEquipArmor = false;
 	EquipArmorName = "";
 
-	StorageRowSize = 6;
-	StorageColSize = 3;
+	StorageRowSize = 15;
+	StorageColSize = 7;
 
 	PlayerHealth = 10;
 	PlayerArmor = 0;
@@ -36,6 +36,20 @@ USaveManager* USaveManager::GetSaveInstance(const FString& SaveSlotName)
 		return NewSave;
 	}
 }
+
+void USaveManager::SaveDataSet(const FString& SaveSlotName, USaveManager* SaveGameInstance)
+{
+
+	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveSlotName, 0);
+
+	//USaveManager* SaveGameInstance = Cast<USaveManager>(UGameplayStatics::CreateSaveGameObject(USaveManager::StaticClass()));
+
+	//if (SaveGameInstance)
+	//{
+	//	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveSlotName, 0);
+	//}
+}
+
 
 void USaveManager::SaveData(const FString& SaveSlotName)
 {

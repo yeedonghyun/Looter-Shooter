@@ -21,6 +21,11 @@ APlayerCharacter::APlayerCharacter() {
     HandTired = false;
 
     bOpenInventory = false;
+    ElapsedTime = 0.0f;
+    bIsTimerActive = true;
+
+
+
 
     GunEndPoint = FVector(0.f, 0.f, 0.f);
 
@@ -130,6 +135,10 @@ void APlayerCharacter::BeginPlay()
 
             PlayerUI->SetHandStamina(curHandStamina);
             PlayerUI->SetStamina(curStamina);
+
+
+            PlayerUI->SetHealth(Health / MaxHealth);
+            PlayerUI->SetArmor(Armor / MaxArmor);
         }
     }
 
@@ -186,12 +195,16 @@ void APlayerCharacter::BeginPlay()
 
         InventoryUI->ToggleInventory(bOpenInventory);
         InventoryUI->OnDropRequested.AddUObject(this, &APlayerCharacter::CreateInventoryItem);
-
+        InventoryUI->OnItemUseRequested.AddUObject(this, &APlayerCharacter::UpdatePlayerStatus);
+        
     }
 
     GetWorldTimerManager().SetTimer(HandStaminaTimerHandle, this, &APlayerCharacter::HandStaminaControl, timerRepeatTime, true);
     GetWorldTimerManager().SetTimer(StaminaTimerHandle, this, &APlayerCharacter::StaminaControl, timerRepeatTime, true);
 }
+
+
+
 
 void APlayerCharacter::Tick(float DeltaTime)
 {
@@ -204,6 +217,14 @@ void APlayerCharacter::Tick(float DeltaTime)
     PivotComponent->SetRelativeRotation(FRotator(CamearaRotation.Pitch, 0, 0));
 
     CheckObjectCloseAhead();
+
+    if (bIsTimerActive)
+    {
+        ElapsedTime += DeltaTime;
+        PlayerUI->UpdateTimerUI(ElapsedTime);
+    }
+
+
 }
 
 void APlayerCharacter::CheckObjectCloseAhead()
@@ -658,4 +679,24 @@ void APlayerCharacter::CreateInventoryItem(FString name)
     if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) {
         AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
     }
+}
+
+void APlayerCharacter::UpdatePlayerStatus(FItemData data)
+{
+    switch (data.Type)
+    {
+    case EItemType::HEALING:
+
+	    Health += data.Value;
+        PlayerUI->SetHealth(Health / MaxHealth);
+	    break;
+
+    case EItemType::ARMOR:
+
+	    Armor += data.Value;
+        PlayerUI->SetArmor(Armor / MaxArmor);
+	    break;
+    }
+
+
 }

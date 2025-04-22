@@ -91,52 +91,12 @@ void UInventoryBase::SwapSlot(UInventorySlot*& From, UInventorySlot*& To)
 
 void UInventoryBase::ApplyStatByType(EItemType Type, int32 Value)
 {
-	if (Type == EItemType::ARMOR) PlayerArmor = Value;
-	//else if (Type == EItemType::HEALING) PlayerHealth = Value;
 
-	// 상태 UI 업데이트
-	FString Info = FString::Printf(TEXT("Health : %d\nArmor : %d\n"),
-		PlayerHealth,
-		PlayerArmor
-	);
-
-	PlayerStatus->SetText(FText::FromString(Info));
 }
 
 //드래그블록 아래 FROM
 void UInventoryBase::HandleSwapRequest(UInventorySlot* From, UInventorySlot* To)
 {
-	if (From->bEquipped)
-	{
-		if (From->SlotType != To->SlotData.Type) { return; }
-
-		else
-		{
-			ApplyStatByType(From->SlotType, To->SlotData.Value);
-		}
-	}
-
-	else if (To->bEquipped)
-	{
-		if (From->SlotData.bHaveItem)
-		{
-			if (To->SlotType != From->SlotData.Type) { return; }
-
-			else
-			{
-				ApplyStatByType(From->SlotType, From->SlotData.Value);
-			}
-
-		}
-
-		else
-		{
-			ApplyStatByType(To->SlotType, 0);
-		}
-
-	}
-
-	SwapSlot(From, To);
 
 }
 
@@ -166,23 +126,8 @@ void UInventoryBase::HandleSlotActionRequest(FSlotData data, ESlotActionType typ
 
 }
 
-void UInventoryBase::UseItem(FSlotData data)
+void UInventoryBase::UseItem(FItemData data)
 {
-	switch (data.Type)
-	{
-	case EItemType::HEALING:
-
-		PlayerHealth += data.Value;
-		break;
-	}
-
-
-	FString Info = FString::Printf(TEXT("Health : %d\nArmor : %d\n"),
-		PlayerHealth,
-		PlayerArmor
-	);
-
-	PlayerStatus->SetText(FText::FromString(Info));
 }
 
 
@@ -203,18 +148,15 @@ void UInventoryBase::CheckToolTip(FSlotData data, bool bActive)
 			SlotToolTip->SetPositionInViewport(MousePosition + FVector2D(15.0f, 0.0f));
 		}
 
-		FString Info = FString::Printf(
-			TEXT("Name : %s\nValue : %d\nWeight : %d\nType : %s"),
-			*data.Name,
-			data.Value,
-			data.Weight,
-			//*UEnum::GetValueAsString(data.Type)
-			*UEnum::GetDisplayValueAsText(data.Type).ToString()
-		);
+		SlotToolTip->Type->SetText(FText::AsNumber(data.Weight));
+		SlotToolTip->Name->SetText(FText::FromString(*data.Name));
+		SlotToolTip->Weight->SetText(FText::AsNumber(data.Weight));
+		SlotToolTip->Value->SetText(FText::AsNumber(data.Value));
+		SlotToolTip->Information->SetText(FText::FromString(*data.Name));
 
-		SlotToolTip->Information->SetText(FText::FromString(Info));
 		SlotToolTip->bShouldFollowMouse = true;
 		SlotToolTip->SetVisibility(ESlateVisibility::Visible);
+
 
 	}
 }

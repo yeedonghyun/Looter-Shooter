@@ -10,9 +10,10 @@
 #include "Components/HorizontalBox.h"
 #include "../Save/SaveManager.h"
 #include "Tooltip.h"
-
+#include "Components/Button.h"
 
 #include "InventoryBase.generated.h"
+
 
 
 
@@ -32,10 +33,14 @@ public:
 	void DeleteSlotArray(TArray<UInventorySlot*>& SlotArray);
 	void SwapSlot(UInventorySlot*& From, UInventorySlot*& To);
 
-	void HandleSwapRequest(UInventorySlot* From, UInventorySlot* To);
+	virtual void HandleSwapRequest(UInventorySlot* From, UInventorySlot* To);
 
 
-	void UseItem(FSlotData data);
+	virtual void UseItem(FItemData data);
+
+
+
+
 	
 	void HandleSlotActionRequest(FSlotData data, ESlotActionType type, bool bActive);
 	void CheckToolTip(FSlotData data, bool bActive);
@@ -43,15 +48,17 @@ public:
 
 	void ApplyStatByType(EItemType Type, int32 Value);
 
+
 	UTooltip* SlotToolTip;
 	bool bDragging;
-
-	int32 PlayerHealth;
-	int32 PlayerArmor;
-
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	UTextBlock* PlayerStatus;
+
+
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* SaveButton;
 
 };

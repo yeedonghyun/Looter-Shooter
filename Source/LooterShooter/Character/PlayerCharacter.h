@@ -64,6 +64,7 @@ protected:
 	void CheckItem(FVector Start, FRotator Rotation, int ViewDis);
 	void ToggleInventory(const FInputActionValue& InputValue);
 	void CreateInventoryItem(FString name);
+	void UpdatePlayerStatus(FItemData data);
 
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
@@ -136,6 +137,21 @@ public:
 
 	bool bOpenInventory;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float Health;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float Armor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float MaxHealth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float MaxArmor;
+
+	float ElapsedTime;
+	bool bIsTimerActive;
+
+
 private:
 	//Run
 	UPROPERTY(EditAnywhere)
@@ -195,4 +211,6 @@ private:
 
 	UFUNCTION()
 	void HandStaminaControl();
+
+
 };

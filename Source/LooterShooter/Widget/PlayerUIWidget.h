@@ -6,6 +6,8 @@
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Math/Color.h"
+#include "Components/EditableTextBox.h"
+
 #include "PlayerUIWidget.generated.h"
 
 UCLASS()
@@ -29,6 +31,15 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* UStamina;
 
+
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* UHealth;
+
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* UArmor;
+
+
+
 public:
 	virtual void NativeConstruct() override;
 
@@ -42,4 +53,15 @@ public:
 
 	void SetStaminaColor(FLinearColor color);
 	void SetHandStaminaColor(FLinearColor color);
+
+
+	void SetHealth(float value);
+	void SetArmor(float value);
+
+	void UpdateTimerUI(float Time);
+
+	UPROPERTY(meta = (BindWidget))
+	UEditableTextBox* EscapeTimer;
+
+
 };

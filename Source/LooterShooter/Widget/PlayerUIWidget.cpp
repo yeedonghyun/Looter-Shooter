@@ -6,7 +6,8 @@ void UPlayerUIWidget::NativeConstruct()
 
     if (LeftAmmo)
     {
-        LeftAmmo->SetText(FText::FromString(TEXT("30 / ")));
+        LeftAmmo->SetText(FText::FromString(TEXT("30")));
+        //LeftAmmo->SetText(FText::FromString(TEXT("30 / ")));
     }
 
     if (Magazine)
@@ -29,7 +30,8 @@ void UPlayerUIWidget::ShowCrosshairOnAimEnd()
 
 void UPlayerUIWidget::SetLeftAmmoText(int CurAmmo)
 {
-    FString AmmoString = FString::FromInt(CurAmmo) + TEXT(" / ");
+    FString AmmoString = FString::FromInt(CurAmmo);
+    //FString AmmoString = FString::FromInt(CurAmmo) + TEXT(" / ");
     LeftAmmo->SetText(FText::FromString(AmmoString));
 }
 
@@ -52,3 +54,32 @@ void UPlayerUIWidget::SetHandStaminaColor(FLinearColor color)
 {
     UHandStamina->SetFillColorAndOpacity(color);
 }
+
+
+void UPlayerUIWidget::SetHealth(float value)
+{
+    UHealth->SetPercent(value);
+}
+
+void UPlayerUIWidget::SetArmor(float value)
+{
+    UArmor->SetPercent(value);
+}
+
+void UPlayerUIWidget::UpdateTimerUI(float Time)
+{
+    int32 TotalSeconds = FMath::FloorToInt(Time);
+    int32 Hours = TotalSeconds / 3600;
+    int32 Minutes = (TotalSeconds % 3600) / 60;
+    int32 Seconds = TotalSeconds % 60;
+
+    FString FormattedTime = FString::Printf(TEXT("%02d:%02d:%02d"), Hours, Minutes, Seconds);
+
+
+    if (EscapeTimer)
+    {
+        EscapeTimer->SetText(FText::FromString(FormattedTime));
+    }
+
+}
+

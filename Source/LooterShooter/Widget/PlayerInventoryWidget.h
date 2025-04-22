@@ -12,11 +12,15 @@
 #include "../Item/Item_bag.h"
 #include "Components/TextBlock.h"
 #include "../Inventory/Tooltip.h"
+#include "../Inventory/Inventory.h"
+#include "../Inventory/ItemInventory.h"
+
 
 #include "PlayerInventoryWidget.generated.h"
 
 
 DECLARE_EVENT_OneParam(UPlayerInventoryWidget, FDropInventoryItem, FString)
+DECLARE_EVENT_OneParam(UPlayerInventoryWidget, FUseInventoryItem, FItemData)
 
 UCLASS()
 class LOOTERSHOOTER_API UPlayerInventoryWidget : public UInventoryBase
@@ -39,27 +43,23 @@ public:
 	void SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData);
 
 
+	virtual void UseItem(FItemData data) override;
+	virtual void HandleSwapRequest(UInventorySlot* From, UInventorySlot* To) override;
+
 protected:
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	UInventory* PlayerInventory;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-		UInventorySlot* EquipInventorySlot;
+	UItemInventory* EquipInventory;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-		UInventorySlot* WorldInventorySlot;
+	UItemInventory* WorldInventory;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 		UInventorySlot* ArmorSlot;
-
-
-	UPROPERTY(meta = (BindWidget))
-		UVerticalBox* PlayerInventory;
-
-	UPROPERTY(meta = (BindWidget))
-		UVerticalBox* WorldInventory;
-
-	UPROPERTY(meta = (BindWidget))
-		UVerticalBox* EquipInventory;
 
 	
 
@@ -73,6 +73,10 @@ public:
 	int32 InventoryRowSize;
 	int32 InventoryColSize;
 
+	UFUNCTION(BlueprintCallable)
+	void OnSaveButtonClicked();
+
+
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	bool bEquipInventory;
 
@@ -85,5 +89,5 @@ public:
 	AItem_bag* Bag;
 
 	FDropInventoryItem OnDropRequested;
-
+	FUseInventoryItem OnItemUseRequested;
 };

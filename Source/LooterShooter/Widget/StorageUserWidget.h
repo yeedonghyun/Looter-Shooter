@@ -9,8 +9,9 @@
 #include "../Item/ItemData.h"
 #include "Components/Button.h"
 #include "../Inventory/InventoryBase.h"
-
-
+#include "../Inventory/Inventory.h"
+#include "../Inventory/ItemInventory.h"
+#include "../Inventory/Tooltip.h"
 
 #include "StorageUserWidget.generated.h"
 
@@ -28,33 +29,33 @@ public:
 	void LoadInventoryData();
 	void InitWidget();
 
+	virtual void UseItem(FItemData data) override;
+	virtual void HandleSwapRequest(UInventorySlot* From, UInventorySlot* To) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	UInventorySlot* EquipInventorySlot;
+	UInventory* PlayerInventory;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	//UInventorySlot* WorldInventorySlot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	UItemInventory* EquipInventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	UInventory* StorageInventory;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	UInventorySlot* ArmorSlot;
 
 
 	UPROPERTY(meta = (BindWidget))
-	UVerticalBox* PlayerInventory;
-
-	//UPROPERTY(meta = (BindWidget))
-	//UVerticalBox* WorldInventory;
-
-	UPROPERTY(meta = (BindWidget))
-	UVerticalBox* EquipInventory;
-
-
-	UPROPERTY(meta = (BindWidget))
 		UButton* ReturnMain;
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void OnReturnMainButtonClicked();
+	UFUNCTION(BlueprintCallable)
+	void OnSaveButtonClicked();
+
 
 	TArray<UInventorySlot*> PlayerInventoryArray;
 	TArray<UInventorySlot*> EquipInventoryArray;
+	TArray<UInventorySlot*> StorageInventoryArray;
 };

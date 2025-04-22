@@ -114,7 +114,7 @@ FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 
 	else if (InMouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
 	{
-		if (SlotData.Type == EItemType::HEALING)
+		if (SlotData.Type == EItemType::HEALING || SlotData.Type == EItemType::ARMOR)
 		{
 			RequestSlotAction(SlotData, ESlotActionType::USE, true);
 			SlotData.bHaveItem = false;

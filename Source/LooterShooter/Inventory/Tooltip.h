@@ -25,6 +25,15 @@ public:
 
 	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime);
 
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* Type;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* Name;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* Weight;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* Value;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		bool bShouldFollowMouse = false;
 

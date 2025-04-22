@@ -23,12 +23,16 @@ public:
 	static USaveManager* GetSaveInstance(const FString& SaveSlotName);
 	static void SaveData(const FString& SaveSlotName);
 
+	static void SaveDataSet(const FString& SaveSlotName, USaveManager* SaveGameInstance);
+
 	int32 InventoryRowSize;
 	int32 InventoryColSize;
+	UPROPERTY(BlueprintReadWrite)
 	TArray<FSlotData> InventoryItems;
 
 	bool bEquipInventory;
 	FString EquipInventoryName;
+	UPROPERTY(BlueprintReadWrite)
 	TArray<FSlotData> EquipInventoryItems;
 
 	bool bEquipArmor;
@@ -36,6 +40,7 @@ public:
 
 	int32 StorageRowSize;
 	int32 StorageColSize;
+	UPROPERTY(BlueprintReadWrite)
 	TArray<FSlotData> StorageItems;
 
 	int32 PlayerHealth;
