@@ -1,5 +1,6 @@
 #include "EnemyCharacter.h"
 #include "AIController.h"
+#include "NavigationSystem.h"
 #include "Kismet/GameplayStatics.h"
 
 AEnemyCharacter::AEnemyCharacter()
@@ -85,6 +86,11 @@ void AEnemyCharacter::Tick(float DeltaTime)
         {
             AIController->StopMovement();            
         }
+
+        if (TargetPlayer && bSeePlayer)
+        {
+            RotateToTarget(TargetPlayer, 5.0f);
+        }
     }
 }
 
@@ -120,6 +126,10 @@ bool AEnemyCharacter::IsDetectPlayer()
         FCollisionShape::MakeSphere(50.f),
         Params
     );
+
+    if (FVector::Dist(LastKnownPlayerLocation, GetActorLocation()) < 50.f) {
+        LostPlayer = false;
+    }
 
     if (!bHit || !Hit.GetActor()->ActorHasTag("Player")) {
         if (bSeePlayer) {
@@ -164,29 +174,27 @@ bool AEnemyCharacter::IsAimedPlayer()
     return Angle < 10.0f;
 }
 
-bool AEnemyCharacter::MoveToLocation(FVector Location, float DeltaTime)
+void AEnemyCharacter::MoveToLocation(FVector TargetLocation, float AcceptanceRadius)
 {
-    float Distance = FVector::Dist(Location, GetActorLocation());
-    if (Distance < 1.f)
-    {
-        return true;
-    }
+    AAIController* AIController = Cast<AAIController>(GetController());
+    if (!AIController) return;
 
-    FVector Direction = (Location - GetActorLocation()).GetSafeNormal();
-    FRotator NewRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
-    SetActorRotation(NewRotation);
-
-    if (GetMovementComponent())
-    {
-        float Speed = GetMovementComponent()->GetMaxSpeed();
-        FVector NewLocation = GetActorLocation() + Direction * Speed * DeltaTime;
-        SetActorLocation(NewLocation);
-    }
-
-    return false;
+    EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(TargetLocation, AcceptanceRadius);
 }
 
-bool AEnemyCharacter::Rotate(float Degree, float RotationSpeed)
+void AEnemyCharacter::MoveToTarget(AActor* TargetActor, float AcceptanceRadius)
+{
+    if (!TargetActor) return;
+
+    AAIController* AIController = Cast<AAIController>(GetController());
+    if (!AIController) return;
+
+    FVector TargetLocation = TargetActor->GetActorLocation();
+
+    EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(TargetLocation, AcceptanceRadius);
+}
+
+void AEnemyCharacter::Rotate(float Degree, float RotationSpeed)
 {
     FRotator CurrentRotation = GetActorRotation();
     CurrentRotation.Yaw += RotationSpeed * GetWorld()->GetDeltaSeconds();
@@ -200,23 +208,20 @@ bool AEnemyCharacter::Rotate(float Degree, float RotationSpeed)
 	FRotator TargetRotation = FRotator(CurrentRotation.Pitch, Degree, CurrentRotation.Roll);
 
     float YawDiff = FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetRotation.Yaw));
-    return YawDiff < 1.f;
 }
 
-bool AEnemyCharacter::RotateToTarget(AActor* TargetActor, float RotationSpeed)
+void AEnemyCharacter::RotateToTarget(AActor* TargetActor, float RotationSpeed)
 {
-    if (!TargetActor) return false;
+    if (!TargetActor) return;
 
     FVector Direction = (TargetActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-    float TargetYaw = Direction.Rotation().Yaw;
-    float CurrentYaw = GetActorRotation().Yaw;
+    FRotator TargetRotation = Direction.Rotation();
 
-    float NewYaw = FMath::FixedTurn(CurrentYaw, TargetYaw, RotationSpeed * GetWorld()->GetDeltaSeconds());
-    FRotator NewRotation(0.f, NewYaw, 0.f);
-	SetActorRotation(NewRotation);
+    FRotator CurrentRotation = GetActorRotation();
 
-    float YawDiff = FMath::Abs(FMath::FindDeltaAngleDegrees(NewYaw, TargetYaw));
-    return YawDiff < 1.f;
+    FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), RotationSpeed);
+
+    SetActorRotation(NewRotation);
 }
 
 void AEnemyCharacter::Fire()

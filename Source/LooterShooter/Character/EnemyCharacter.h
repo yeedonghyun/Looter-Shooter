@@ -70,13 +70,16 @@ protected:
 	void ResetLastKnownPlayerLocation() { LastKnownPlayerLocation = FVector::ZeroVector; }
 
 	UFUNCTION(BlueprintCallable)
-	bool MoveToLocation(FVector Location, float DeltaTime);
+	void MoveToLocation(FVector TargetLocation, float AcceptanceRadius);
 
 	UFUNCTION(BlueprintCallable)
-	bool Rotate(float Degree, float RotationSpeed);
+	void MoveToTarget(AActor* TargetActor, float AcceptanceRadius);
 
 	UFUNCTION(BlueprintCallable)
-	bool RotateToTarget(AActor* TargetActor, float RotationSpeed);
+	void Rotate(float Degree, float RotationSpeed);
+
+	UFUNCTION(BlueprintCallable)
+	void RotateToTarget(AActor* TargetActor, float RotationSpeed);
 
 	UFUNCTION(BlueprintCallable)
 	FVector GetLastKnownPlayerLocation() { return LastKnownPlayerLocation; }
