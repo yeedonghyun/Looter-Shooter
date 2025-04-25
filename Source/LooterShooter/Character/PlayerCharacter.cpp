@@ -24,8 +24,9 @@ APlayerCharacter::APlayerCharacter() {
     ElapsedTime = 0.0f;
     bIsTimerActive = true;
 
-
-
+    bUsingItem = false;
+    ItemUseDuration = 0.0f;
+    ItemUseDelay = 1.0f;
 
     GunEndPoint = FVector(0.f, 0.f, 0.f);
 
@@ -184,26 +185,12 @@ void APlayerCharacter::BeginPlay()
         }
     }
 
+    LoadInventoryClass();
 
-    if (TSubclassOf<UUserWidget> InventoryClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_PlayerInventoryWidget.BP_PlayerInventoryWidget_C'")))
-    {
-        InventoryUI = CreateWidget<UPlayerInventoryWidget>(GetWorld(), InventoryClass);
-        if (InventoryUI)
-        {
-            InventoryUI->AddToViewport();
-        }
-
-        InventoryUI->ToggleInventory(bOpenInventory);
-        InventoryUI->OnDropRequested.AddUObject(this, &APlayerCharacter::CreateInventoryItem);
-        InventoryUI->OnItemUseRequested.AddUObject(this, &APlayerCharacter::UpdatePlayerStatus);
-        
-    }
 
     GetWorldTimerManager().SetTimer(HandStaminaTimerHandle, this, &APlayerCharacter::HandStaminaControl, timerRepeatTime, true);
     GetWorldTimerManager().SetTimer(StaminaTimerHandle, this, &APlayerCharacter::StaminaControl, timerRepeatTime, true);
 }
-
-
 
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -224,8 +211,13 @@ void APlayerCharacter::Tick(float DeltaTime)
         PlayerUI->UpdateTimerUI(ElapsedTime);
     }
 
+    if (bUsingItem)
+    {
+        UpdateItemUseDuration(DeltaTime);
+    }
 
 }
+
 
 void APlayerCharacter::CheckObjectCloseAhead()
 {
@@ -674,6 +666,27 @@ void APlayerCharacter::HandStaminaControl()
 }
 
 
+
+
+
+
+void APlayerCharacter::LoadInventoryClass()
+{
+    if (TSubclassOf<UUserWidget> InventoryClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_PlayerInventoryWidget.BP_PlayerInventoryWidget_C'")))
+    {
+        InventoryUI = CreateWidget<UPlayerInventoryWidget>(GetWorld(), InventoryClass);
+        if (InventoryUI)
+        {
+            InventoryUI->AddToViewport();
+        }
+
+        InventoryUI->ToggleInventory(bOpenInventory);
+        InventoryUI->OnDropRequested.AddUObject(this, &APlayerCharacter::CreateInventoryItem);
+        InventoryUI->OnItemUseRequested.AddUObject(this, &APlayerCharacter::UseItemWithDelay);
+    }
+}
+
+
 void APlayerCharacter::CreateInventoryItem(FString name)
 {
     if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) {
@@ -681,22 +694,45 @@ void APlayerCharacter::CreateInventoryItem(FString name)
     }
 }
 
-void APlayerCharacter::UpdatePlayerStatus(FItemData data)
+
+void APlayerCharacter::UpdateItemUseDuration(float duration)
 {
-    switch (data.Type)
+    ItemUseDuration += duration;
+
+    if (ItemUseDuration >= ItemUseDelay) { UseItem(); }
+    else { PlayerUI->UpdateItemUsingTime(ItemUseDuration); }
+}
+
+
+void APlayerCharacter::UseItemWithDelay(FItemData data)
+{
+    bUsingItem = true;
+    ItemUseDuration = 0.0f;
+    UsingItemData = data;
+
+    PlayerUI->UpdateItemUsingTime(ItemUseDuration);
+    PlayerUI->ShowUsingItemTimer();
+}
+
+void APlayerCharacter::UseItem()
+{
+    switch (UsingItemData.Type)
     {
     case EItemType::HEALING:
 
-	    Health += data.Value;
+        Health = (Health + UsingItemData.Value > MaxHealth) ? MaxHealth : Health + UsingItemData.Value;
         PlayerUI->SetHealth(Health / MaxHealth);
-	    break;
+        break;
 
     case EItemType::ARMOR:
 
-	    Armor += data.Value;
+        Armor = (Armor + UsingItemData.Value > MaxArmor) ? MaxArmor : Armor + UsingItemData.Value;
         PlayerUI->SetArmor(Armor / MaxArmor);
-	    break;
+        break;
     }
 
-
+    bUsingItem = false;
+    ItemUseDuration = 0.0f;
+    PlayerUI->UpdateItemUsingTime(ItemUseDuration);
+    PlayerUI->HideUsingItemTimer();
 }

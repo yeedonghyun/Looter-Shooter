@@ -14,6 +14,8 @@ void UPlayerUIWidget::NativeConstruct()
     {
         Magazine->SetText(FText::FromString(TEXT("30")));
     }
+
+    HideUsingItemTimer();
 }
 
 void UPlayerUIWidget::HideCrosshairOnAim()
@@ -66,6 +68,24 @@ void UPlayerUIWidget::SetArmor(float value)
     UArmor->SetPercent(value);
 }
 
+
+void UPlayerUIWidget::HideUsingItemTimer()
+{
+    UUsingItemTime->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UPlayerUIWidget::ShowUsingItemTimer()
+{
+    UUsingItemTime->SetVisibility(ESlateVisibility::Visible);
+}
+
+
+
+void UPlayerUIWidget::UpdateItemUsingTime(float value)
+{
+    UUsingItemTime->SetPercent(value);
+}
+
 void UPlayerUIWidget::UpdateTimerUI(float Time)
 {
     int32 TotalSeconds = FMath::FloorToInt(Time);
@@ -82,4 +102,3 @@ void UPlayerUIWidget::UpdateTimerUI(float Time)
     }
 
 }
-

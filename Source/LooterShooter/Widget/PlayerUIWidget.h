@@ -38,7 +38,8 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* UArmor;
 
-
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* UUsingItemTime;
 
 public:
 	virtual void NativeConstruct() override;
@@ -59,9 +60,16 @@ public:
 	void SetArmor(float value);
 
 	void UpdateTimerUI(float Time);
+	void UpdateItemUsingTime(float value);
+
+	void HideUsingItemTimer();
+	void ShowUsingItemTimer();
+
 
 	UPROPERTY(meta = (BindWidget))
 	UEditableTextBox* EscapeTimer;
+
+
 
 
 };

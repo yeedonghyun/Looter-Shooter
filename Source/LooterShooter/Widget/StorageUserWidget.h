@@ -8,7 +8,8 @@
 #include "../Inventory/InventorySlot.h"
 #include "../Item/ItemData.h"
 #include "Components/Button.h"
-#include "../Inventory/InventoryBase.h"
+//#include "../Inventory/InventoryBase.h"
+#include "../Inventory/InventoryWidgetBase.h"
 #include "../Inventory/Inventory.h"
 #include "../Inventory/ItemInventory.h"
 #include "../Inventory/Tooltip.h"
@@ -18,7 +19,7 @@
 
 
 UCLASS()
-class LOOTERSHOOTER_API UStorageUserWidget : public UInventoryBase
+class LOOTERSHOOTER_API UStorageUserWidget : public UInventoryWidgetBase
 {
 	GENERATED_BODY()
 	
@@ -29,8 +30,8 @@ public:
 	void LoadInventoryData();
 	void InitWidget();
 
-	virtual void UseItem(FItemData data) override;
-	virtual void HandleSwapRequest(UInventorySlot* From, UInventorySlot* To) override;
+	//virtual void UseItem(FItemData data) override;
+	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	UInventory* PlayerInventory;

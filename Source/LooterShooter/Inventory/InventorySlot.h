@@ -6,14 +6,24 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/Image.h"
 
+#include "Delegates/DelegateCombinations.h"
+
 #include "LooterShooter/Item/ItemBase.h"
 
 #include "../Item/ItemData.h"
 
 #include "LooterShooter/Item/Item_bag.h"
 #include "../Inventory/DragDropSlot.h"
+
+#include "../Inventory/CircleProgressBar.h"
+
+
 #include "InventorySlot.generated.h"
 
+
+//class UInventoryBase;
+//
+//DECLARE_DYNAMIC_DELEGATE_OneParam(FOnItemUseResponse, bool, bSuccess);
 
 UENUM(BlueprintType)
 enum class ESlotActionType : uint8
@@ -27,7 +37,8 @@ enum class ESlotActionType : uint8
 
 DECLARE_EVENT_TwoParams(UInventorySlot, FSwapSlot, UInventorySlot*, UInventorySlot*)
 
-DECLARE_EVENT_ThreeParams(UInventorySlot, FSlotAction, FSlotData, ESlotActionType, bool)
+DECLARE_EVENT_ThreeParams(UInventorySlot, FSlotAction, UInventorySlot*, ESlotActionType, bool)
+
 
 
 UCLASS()
@@ -38,8 +49,22 @@ class LOOTERSHOOTER_API UInventorySlot : public UUserWidget
 public:
 
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+
+public:
+
+	bool bUseItem;
+	float ItemUseDuration;
+	float ItemUseDelay;
+
+	void CreateInventorySlot(int idx, EItemType type);
+
+
 
 	void InitInventorySlot(int idx, int InventoryIdx, EItemType type);
+	void StartConsume();
+	void CompleteConsume();
 
 
 	void SetSlotFromItem(const FItemData& data);
@@ -56,9 +81,11 @@ public:
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)override;
 
-	void RequestSlotAction(FSlotData data, ESlotActionType type, bool bActive);
+	void RequestSlotAction(ESlotActionType type, bool bActive);
 
-	void RequestSwap(UInventorySlot* Slot);
+	void RequestSwap(UInventorySlot* TargetSlot);
+
+
 
 public:
 
@@ -92,6 +119,23 @@ public:
 
 	FSwapSlot OnSwapRequested;
 
+
+	//FOnItemUseResponse OnUseResponseDelegate;
+
+
+	UPROPERTY(meta = (BindWidget))
+	UCircleProgressBar* ProgressBar;
+
+
+
+
+
+	//void RequestUseItem();
+	//void OnItemUseResponse(bool bSuccess);
+
+	void TryUseItem();
+
+	//void SetUseRequestDelegate(TFunction<void(UInventorySlot*, FOnSlotActionResult)> InDelegate);
 
 };
 

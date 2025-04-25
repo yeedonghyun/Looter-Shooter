@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/TextBlock.h"
-
+#include "LooterShooter/Item/ItemBase.h"
 
 #include "Tooltip.generated.h"
 
@@ -20,19 +20,21 @@ class LOOTERSHOOTER_API UTooltip : public UUserWidget
 public:
 
 
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+	void UpdateTexts(FSlotData data, bool bActive);
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 		UTextBlock* Information;
-
-	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime);
-
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* Type;
+		UTextBlock* Type;
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* Name;
+		UTextBlock* Name;
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* Weight;
+		UTextBlock* Weight;
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* Value;
+		UTextBlock* Value;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		bool bShouldFollowMouse = false;

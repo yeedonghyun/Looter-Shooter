@@ -62,9 +62,16 @@ protected:
 	void CheckObjectCloseAhead();
 	void CheckWall(FVector Start, FRotator Rotation, int ViewDis);
 	void CheckItem(FVector Start, FRotator Rotation, int ViewDis);
+
+
+	void LoadInventoryClass();
+
 	void ToggleInventory(const FInputActionValue& InputValue);
 	void CreateInventoryItem(FString name);
-	void UpdatePlayerStatus(FItemData data);
+	void UseItemWithDelay(FItemData data);
+	void UseItem();
+
+	void UpdateItemUseDuration(float duration);
 
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
@@ -150,7 +157,12 @@ public:
 
 	float ElapsedTime;
 	bool bIsTimerActive;
+	
+	bool bUsingItem;
+	float ItemUseDuration;
+	float ItemUseDelay;
 
+	FItemData UsingItemData;
 
 private:
 	//Run

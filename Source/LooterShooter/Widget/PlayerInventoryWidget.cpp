@@ -6,46 +6,35 @@ void UPlayerInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	bWorldInventoryOpen = false;
+	bUsingItem = false;
+
+	WorldInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	WorldInventory->SetVisibility(ESlateVisibility::Hidden);
+	EquipInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
+	EquipInventory->ItemSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+	//ArmorSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+
 	InitWidget();
-	LoadInventoryData();
 
 	if (this->SaveButton)
 	{
 		this->SaveButton->OnClicked.AddDynamic(this, &UPlayerInventoryWidget::OnSaveButtonClicked);
 	}
+
 }
+
+void UPlayerInventoryWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+}
+
 
 void UPlayerInventoryWidget::InitWidget()
 {
-	bOtherInventory = false;
-	bDragging = false;
-
-	WorldInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
-	WorldInventory->SetVisibility(ESlateVisibility::Hidden);
-
-	EquipInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
-	EquipInventory->ItemSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
-
-	ArmorSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
-	ArmorSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
-
-	if (TSubclassOf<UUserWidget> ToolTip = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Inventory/BP_Tooltip.BP_Tooltip_C'")))
-	{
-		SlotToolTip = CreateWidget<UTooltip>(GetWorld(), ToolTip);
-
-		if (SlotToolTip)
-		{
-			SlotToolTip->AddToViewport(999);
-			SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
-		}
-	}
-}
-
-void UPlayerInventoryWidget::LoadInventoryData()
-{
 	USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
 
-	CreateSlots(PlayerInventory->Grid, PlayerInventoryArray, 0, SaveData->InventoryRowSize, SaveData->InventoryColSize);
+	CreateInventory(PlayerInventoryArray, PlayerInventory->Grid, SaveData->InventoryRowSize, SaveData->InventoryColSize);
 
 	if (SaveData->InventoryItems.Num() != 0)
 	{
@@ -60,7 +49,7 @@ void UPlayerInventoryWidget::LoadInventoryData()
 		{
 			AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
 
-			CreateSlots(EquipInventory->Grid, EquipInventoryArray, 2, DefaultBag->Width, DefaultBag->Height);
+			CreateItemInventory(EquipInventoryArray, EquipInventory->ItemSlot, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height);
 			EquipInventory->ItemSlot->SetSlotFromItem(DefaultBag->ItemData);
 		}
 
@@ -69,6 +58,7 @@ void UPlayerInventoryWidget::LoadInventoryData()
 			SetArrayData(EquipInventoryArray, SaveData->EquipInventoryItems);
 		}
 	}
+
 }
 
 
@@ -89,7 +79,7 @@ int UPlayerInventoryWidget::FindEmptySlot(TArray<UInventorySlot*>& SlotArray)
 }
 
 
-void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem) // 드래그앤 드랍시를 생각
+void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
 {
 	if (WorldInventoryArray.Num() > 0)
 	{
@@ -97,8 +87,7 @@ void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem) // 드래�
 	}
 
 	Bag = Cast<AItem_bag>(AimedItem);
-	//AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
-	CreateSlots(WorldInventory->Grid, WorldInventoryArray, 1, Bag->Width, Bag->Height);
+	CreateItemInventory(WorldInventoryArray, WorldInventory->ItemSlot, WorldInventory->Grid, Bag->Width, Bag->Height);
 	bOtherInventory = true;
 
 	TArray<FSlotData>& Items = Bag->savedItems;
@@ -140,12 +129,17 @@ void UPlayerInventoryWidget::ToggleInventory(bool bOpen)
 {
 	if (bOpen)
 	{ 
+		SetIsEnabled(true);
+		SetRenderOpacity(1.0f);
 		SetUIMode(ESlateVisibility::Visible, true, FInputModeGameAndUI()); 
 	}
 
 	else 
 	{ 
-		SetUIMode(ESlateVisibility::Hidden, false, FInputModeGameOnly()); 
+		SetIsEnabled(false);
+		SetRenderOpacity(0.0f);
+		SetUIMode(ESlateVisibility::Visible, false, FInputModeGameOnly());
+		//SetUIMode(ESlateVisibility::Hidden, false, FInputModeGameOnly()); 
 
 		SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
 		SlotToolTip->bShouldFollowMouse = false;
@@ -164,9 +158,16 @@ void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor
 }
 
 
-void UPlayerInventoryWidget::UseItem(FItemData data)
+void UPlayerInventoryWidget::UseItem(UInventorySlot* TargetSlot)
 {
-	OnItemUseRequested.Broadcast(data);
+	if (!bUsingItem)
+	{
+		if (TargetSlot->SlotData.Type == EItemType::HEALING || TargetSlot->SlotData.Type == EItemType::ARMOR)
+		{
+			TargetSlot->StartConsume();
+			OnItemUseRequested.Broadcast(TargetSlot->SlotData);
+		}
+	}
 }
 
 
@@ -195,12 +196,12 @@ void UPlayerInventoryWidget::OnSaveButtonClicked()
 
 }
 
-void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* From, UInventorySlot* To)
+void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
-	if (From->SlotType == EItemType::BAG && To->SlotType == EItemType::BAG)
+	if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
 	{
-		UItemInventory* FromInventory = From->GetTypedOuter<UItemInventory>();
-		UItemInventory* ToInventory = To->GetTypedOuter<UItemInventory>();
+		UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
+		UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
 
 		UVerticalBox* FromGrid = FromInventory->Grid;
 		UVerticalBox* ToGrid = ToInventory->Grid;
@@ -220,30 +221,30 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* From, UInventoryS
 			FromGrid->AddChild(Child);
 		}
 
-		SwapSlot(From, To);
+		SwapSlotData(DraggingSlot, TargetSlot);
 		std::swap(WorldInventoryArray, EquipInventoryArray);
 
 	}
 
-	else if (From->SlotType != EItemType::BAG && To->SlotType == EItemType::BAG)
+	else if (DraggingSlot->SlotType != EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
 	{
 		//if (From->SlotData.Type == EItemType::BAG)
 		{
-			UItemInventory* ToInventory = To->GetTypedOuter<UItemInventory>();
+			UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
 			UVerticalBox* ToGrid = ToInventory->Grid;
 			TArray<UWidget*> ToChildren = ToGrid->GetAllChildren();
 			ToGrid->ClearChildren();
-			SwapSlot(From, To);
+			SwapSlotData(DraggingSlot, TargetSlot);
 
 
 		}
 	}
 
-	else if (From->SlotType == EItemType::BAG && To->SlotType != EItemType::BAG)
+	else if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType != EItemType::BAG)
 	{
-		if (To->SlotData.Type == EItemType::BAG)
+		if (TargetSlot->SlotData.Type == EItemType::BAG)
 		{
-			UItemInventory* FromInventory = From->GetTypedOuter<UItemInventory>();
+			UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
 			UVerticalBox* FromGrid = FromInventory->Grid;
 			TArray<UWidget*> FromChildren = FromGrid->GetAllChildren();
 			FromGrid->ClearChildren();
@@ -255,20 +256,17 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* From, UInventoryS
 			if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
 			{
 				AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
-
-				CreateSlots(FromGrid, EquipInventoryArray, 2, DefaultBag->Width, DefaultBag->Height);
-				//FromInventory->ItemSlot->SetSlotFromItem(DefaultBag->ItemData);
-				SwapSlot(From, To);
+				CreateItemInventory(EquipInventoryArray, EquipInventory->ItemSlot, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height);
+				SwapSlotData(DraggingSlot, TargetSlot);
 			}
 		}
-
 
 	}
 
 
 	else
 	{
-		SwapSlot(From, To);
+		SwapSlotData(DraggingSlot, TargetSlot);
 	}
 
 

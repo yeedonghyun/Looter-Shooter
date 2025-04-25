@@ -2,13 +2,48 @@
 
 
 #include "InventorySlot.h"
+
 #include "Blueprint/WidgetBlueprintLibrary.h"
+
 
 
 void UInventorySlot::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+
+	ProgressBar->SetVisibility(ESlateVisibility::Hidden);
+
+	bUseItem = false;
+	ItemUseDuration = 0.f;
+	ItemUseDelay = 1.f;
 }
+
+void UInventorySlot::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (bUseItem)
+	{
+		ItemUseDuration += InDeltaTime;
+
+		if (ItemUseDuration >= ItemUseDelay) { CompleteConsume(); }
+		else { ProgressBar->SetPercentage(ItemUseDuration); }
+	}
+}
+
+
+void UInventorySlot::CreateInventorySlot(int idx, EItemType type)
+{
+	AddToViewport();
+
+	_idx = idx;
+	SlotType = type;
+	IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+}
+
+
+
 
 
 
@@ -22,7 +57,23 @@ void UInventorySlot::InitInventorySlot(int idx, int InventoryIdx, EItemType type
 	IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 }
 
+void UInventorySlot::StartConsume()
+{
+	bUseItem = true;
+	ProgressBar->SetVisibility(ESlateVisibility::Visible);
+	//ItemUseDelay
+}
 
+void UInventorySlot::CompleteConsume()
+{
+	SlotData.bHaveItem = false;
+	bUseItem = false;
+	IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+
+	ItemUseDuration = 0.f;
+	ProgressBar->SetPercentage(ItemUseDuration);
+	ProgressBar->SetVisibility(ESlateVisibility::Hidden);
+}
 
 
 void UInventorySlot::SetSlotFromItem(const FItemData& data)
@@ -79,12 +130,12 @@ void UInventorySlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPoin
 
 	if (!SlotData.bHaveItem)
 	{
-		RequestSlotAction(SlotData, ESlotActionType::CHECK, false);
+		RequestSlotAction(ESlotActionType::CHECK, false);
 	}
 
 	else
 	{
-		RequestSlotAction(SlotData, ESlotActionType::CHECK, true);
+		RequestSlotAction(ESlotActionType::CHECK, true);
 	}
 
 }
@@ -92,7 +143,7 @@ void UInventorySlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPoin
 void UInventorySlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseLeave(InMouseEvent);
-	RequestSlotAction(SlotData, ESlotActionType::CHECK, false);
+	RequestSlotAction(ESlotActionType::CHECK, false);
 }
 
 
@@ -108,20 +159,13 @@ FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 		if (SlotData.bHaveItem) 
 		{ 
 			Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton); 
-			RequestSlotAction(SlotData, ESlotActionType::DRAG, true);
+			RequestSlotAction(ESlotActionType::DRAG, true);
 		}
 	}
 
 	else if (InMouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
 	{
-		if (SlotData.Type == EItemType::HEALING || SlotData.Type == EItemType::ARMOR)
-		{
-			RequestSlotAction(SlotData, ESlotActionType::USE, true);
-			SlotData.bHaveItem = false;
-			IMG_Item->SetVisibility(ESlateVisibility::Hidden);
-		}
-
-		//RequestUse(SlotData);
+		RequestSlotAction(ESlotActionType::USE, true);
 	}
 
 
@@ -171,19 +215,20 @@ bool UInventorySlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 
 	if (Operation) { RequestSwap(Operation->DraggingSlot); }
 
-	RequestSlotAction(SlotData, ESlotActionType::DRAG, false);
+	RequestSlotAction(ESlotActionType::DRAG, false);
 
 	return false;
 }
 
 
-void UInventorySlot::RequestSlotAction(FSlotData data, ESlotActionType type, bool bActive)
+void UInventorySlot::RequestSlotAction(ESlotActionType type, bool bActive)
 {
-	OnSlotActionRequested.Broadcast(SlotData, type, bActive);
+	OnSlotActionRequested.Broadcast(this, type, bActive);
 }
 
 
-void UInventorySlot::RequestSwap(UInventorySlot* SwapSlot)
+void UInventorySlot::RequestSwap(UInventorySlot* TargetSlot)
 {
-	OnSwapRequested.Broadcast(this, SwapSlot);
+	OnSwapRequested.Broadcast(this, TargetSlot);
 }
+
