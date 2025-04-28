@@ -120,6 +120,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bReload;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bUsingItem;
+
 	USkeletalMeshComponent* SkeletalMeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
@@ -158,7 +161,6 @@ public:
 	float ElapsedTime;
 	bool bIsTimerActive;
 	
-	bool bUsingItem;
 	float ItemUseDuration;
 	float ItemUseDelay;
 
@@ -224,5 +226,12 @@ private:
 	UFUNCTION()
 	void HandStaminaControl();
 
+private:
+	FVector2D TargetRecoilOffset = FVector2D::ZeroVector;
+	FVector2D CurrentRecoilOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category = "Recoil")
+	float RecoilRecoverySpeed = 5.0f;
+	void AddRecoil();
 
 };

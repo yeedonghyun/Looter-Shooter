@@ -91,13 +91,23 @@ protected:
 	void SetLostPlayer(bool bLost) { LostPlayer = bLost; }
 
 	UFUNCTION(BlueprintCallable)
-	bool GetDetectePlayer() { return bSeePlayer; }
+	bool GetDetectePlayer() { return bDetectPlayer; }
 
-	bool bSeePlayer;
+	UFUNCTION(BlueprintCallable)
+	bool GetShoot() { return bShoot; }
+
+	UFUNCTION(BlueprintCallable)
+	bool GetRecentDetectPlayer() { return bRecentDetectPlayer; }
+
+	void CheckRecentlyDetectPlayer();
+
+	bool bDetectPlayer;
 	bool bShoot;
 	bool LostPlayer;
+	bool bRecentDetectPlayer;
 
 	FTimerHandle ShootResetTimerHandle;
+	FTimerHandle DetectPlayerTimerHandle;
 
 	float MaxDetectionRange;
 	float MaxDetectionAngle;

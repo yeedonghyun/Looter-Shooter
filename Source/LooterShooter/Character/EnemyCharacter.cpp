@@ -10,11 +10,12 @@ AEnemyCharacter::AEnemyCharacter()
     MaxDetectionRange = 3000;
     MaxDetectionAngle = 180;
 
-    FireRate = 0.2f;
+    FireRate = 0.4f;
     DetecteRate = 0.1f;
-    bSeePlayer = false;
+    bDetectPlayer = false;
     CurrentAmmo = 30;
     bShoot = false;
+    bRecentDetectPlayer = false;
 
     CurrentState = EEnemyState::Idle;
 
@@ -87,7 +88,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
             AIController->StopMovement();            
         }
 
-        if (TargetPlayer && bSeePlayer)
+        if (TargetPlayer && bDetectPlayer)
         {
             RotateToTarget(TargetPlayer, 5.0f);
         }
@@ -105,7 +106,7 @@ void AEnemyCharacter::UpdateWalkSpeed(float NewWalkSpeed)
 bool AEnemyCharacter::IsDetectPlayer()
 {
     if (!TargetPlayer) {
-        bSeePlayer = false;
+        bDetectPlayer = false;
         LostPlayer = false;
         return false;
     }
@@ -132,11 +133,11 @@ bool AEnemyCharacter::IsDetectPlayer()
     }
 
     if (!bHit || !Hit.GetActor()->ActorHasTag("Player")) {
-        if (bSeePlayer) {
-            LastKnownPlayerLocation = TargetPlayer->GetActorLocation();
-            LostPlayer = true;
+        if (bDetectPlayer) {
+            bRecentDetectPlayer = true;
+            GetWorldTimerManager().SetTimer(DetectPlayerTimerHandle, this, &AEnemyCharacter::CheckRecentlyDetectPlayer, 0.2f, false);
         }
-        bSeePlayer = false;
+        bDetectPlayer = false;
         return false;
     }
 
@@ -148,16 +149,24 @@ bool AEnemyCharacter::IsDetectPlayer()
     float Angle = FMath::Acos(Dot) * (180.f / PI);
 
     if (Distance > MaxDetectionRange || Angle > MaxDetectionAngle) {
-        if (bSeePlayer) {
-            LastKnownPlayerLocation = TargetPlayer->GetActorLocation();
-            LostPlayer = true;
+        if (bDetectPlayer) {
+			bRecentDetectPlayer = true;
+            GetWorldTimerManager().SetTimer(DetectPlayerTimerHandle, this, &AEnemyCharacter::CheckRecentlyDetectPlayer, 0.2f, false);
         }
-        bSeePlayer = false;
+        bDetectPlayer = false;
         return false;
     }
 
-    bSeePlayer = true;
+    bDetectPlayer = true;
     return true;
+}
+
+void AEnemyCharacter::CheckRecentlyDetectPlayer() {
+    if (!bDetectPlayer && bRecentDetectPlayer) {
+        LastKnownPlayerLocation = TargetPlayer->GetActorLocation();
+        LostPlayer = true;
+		bRecentDetectPlayer = false;
+    }
 }
 
 bool AEnemyCharacter::IsAimedPlayer()
@@ -226,13 +235,20 @@ void AEnemyCharacter::RotateToTarget(AActor* TargetActor, float RotationSpeed)
 
 void AEnemyCharacter::Fire()
 {
-    if (!bSeePlayer || bShoot)
+    if (!bDetectPlayer || bShoot)
         return;
 
     if (BulletClass && Weapon) {
         FVector MuzzleLocation = Weapon->GetEndPointLocation();
 
-        GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, GetActorRotation());
+        float RandomYaw = FMath::RandRange(-5.0f, 5.0f);
+        float RandomPitch = FMath::RandRange(-3.0f, 3.0f);
+
+        FRotator RandomizedRotation = GetActorRotation();
+        RandomizedRotation.Yaw += RandomYaw;
+        RandomizedRotation.Pitch += RandomPitch;
+
+        GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, RandomizedRotation);
     }
 
     bShoot = true;

@@ -216,8 +216,24 @@ void APlayerCharacter::Tick(float DeltaTime)
         UpdateItemUseDuration(DeltaTime);
     }
 
-}
+    if (PlayerController)
+    {
+        FVector2D NewOffset = FMath::Vector2DInterpTo(
+            TargetRecoilOffset,
+            FVector2D::ZeroVector,
+            DeltaTime,
+            RecoilRecoverySpeed
+        );
 
+        FVector2D DeltaOffset = NewOffset - CurrentRecoilOffset;
+
+        PlayerController->AddPitchInput(-DeltaOffset.X);
+        PlayerController->AddYawInput(DeltaOffset.Y);
+
+        CurrentRecoilOffset = NewOffset;
+        TargetRecoilOffset = NewOffset;
+    }
+}
 
 void APlayerCharacter::CheckObjectCloseAhead()
 {
@@ -287,7 +303,6 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
             }
         }
     }
-
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -474,7 +489,7 @@ void APlayerCharacter::RunStart(float Output)
 
 void APlayerCharacter::RunEnd()
 {
-    UE_LOG(LogTemp, Log, TEXT("Run Timeline Finished!"));
+    return;
 }
 
 void APlayerCharacter::Crouch(const FInputActionValue& InputValue)
@@ -536,10 +551,27 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
         }
     }
 
+    AddRecoil();
+
     bShoot = true;
     
     float AnimationDuration = 0.2;
     GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::ResetShoot, AnimationDuration, false);
+}
+
+void APlayerCharacter::AddRecoil()
+{
+    if (!PlayerController) return;
+
+    float RecoilPitch = FMath::RandRange(0.5f, 2.0f);
+    float RecoilYaw = FMath::RandRange(-1.0f, 1.0f);
+
+    if (!bAiming) {
+        TargetRecoilOffset += FVector2D(RecoilPitch * 0.1f, RecoilYaw * 0.1f);
+    }
+    else {
+        TargetRecoilOffset += FVector2D(RecoilPitch, RecoilYaw);
+    }
 }
 
 void APlayerCharacter::ResetShoot()

@@ -12,7 +12,12 @@ AEscapePoint::AEscapePoint()
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("EscapeBox"));
 	RootComponent = CollisionBox;
 	CollisionBox->SetBoxExtent(FVector(100.f, 100.f, 100.f));
-	CollisionBox->SetCollisionProfileName(TEXT("Trigger"));
+
+	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
+	CollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);       
+	CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	CollisionBox->SetGenerateOverlapEvents(true);
 }
 
 void AEscapePoint::BeginPlay()
