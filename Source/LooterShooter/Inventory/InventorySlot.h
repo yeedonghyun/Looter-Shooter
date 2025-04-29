@@ -18,6 +18,10 @@
 #include "../Inventory/CircleProgressBar.h"
 
 
+//#include "Components/CanvasPanel.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
+
 #include "InventorySlot.generated.h"
 
 
@@ -40,6 +44,17 @@ DECLARE_EVENT_TwoParams(UInventorySlot, FSwapSlot, UInventorySlot*, UInventorySl
 DECLARE_EVENT_ThreeParams(UInventorySlot, FSlotAction, UInventorySlot*, ESlotActionType, bool)
 
 
+UENUM(BlueprintType)
+enum class EUnderInventoryType : uint8
+{
+	NONE UMETA(DisplayName = "NONE"),
+	PLAYER UMETA(DisplayName = "PLAYER"),
+	EQUIP UMETA(DisplayName = "EQUIP"),
+	WORLDBAG UMETA(DisplayName = "WORLDBAG"),
+	WORLDBOX UMETA(DisplayName = "WORLDBOX"),
+	STORAGE UMETA(DisplayName = "STORAGE")
+};
+
 
 UCLASS()
 class LOOTERSHOOTER_API UInventorySlot : public UUserWidget
@@ -54,11 +69,14 @@ public:
 
 public:
 
+	EUnderInventoryType UnderInventoryType;
+
 	bool bUseItem;
 	float ItemUseDuration;
 	float ItemUseDelay;
+	//bool bUnderWorldInventory;
 
-	void CreateInventorySlot(int idx, EItemType type);
+	void CreateInventorySlot(int idx, EItemType type, EUnderInventoryType InventoryType);
 
 
 
@@ -123,7 +141,7 @@ public:
 	//FOnItemUseResponse OnUseResponseDelegate;
 
 
-	UPROPERTY(meta = (BindWidget))
+	//UPROPERTY(meta = (BindWidget))
 	UCircleProgressBar* ProgressBar;
 
 

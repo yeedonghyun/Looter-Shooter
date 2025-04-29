@@ -7,8 +7,10 @@
 #include "Components/ProgressBar.h"
 #include "Math/Color.h"
 #include "Components/EditableTextBox.h"
+#include <Components/CanvasPanel.h>
 
 #include "PlayerUIWidget.generated.h"
+
 
 UCLASS()
 class LOOTERSHOOTER_API UPlayerUIWidget : public UUserWidget
@@ -41,6 +43,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* UUsingItemTime;
 
+	UPROPERTY(meta = (BindWidget))
+	UCanvasPanel* EscapeCanvas;
+
 public:
 	virtual void NativeConstruct() override;
 
@@ -66,10 +71,18 @@ public:
 	void ShowUsingItemTimer();
 
 
+	void UpdateEscapeTimer(float Time);
+	void ToggleEscapeCanvas(bool isUse);
+
+
+	UPROPERTY(meta = (BindWidget))
+	UEditableTextBox* GameTimer;
+
+
 	UPROPERTY(meta = (BindWidget))
 	UEditableTextBox* EscapeTimer;
 
 
-
+	
 
 };

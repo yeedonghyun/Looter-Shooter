@@ -28,6 +28,10 @@ APlayerCharacter::APlayerCharacter() {
     ItemUseDuration = 0.0f;
     ItemUseDelay = 1.0f;
 
+    bIsEscaping = false;
+    EscapeDuration = 0.0f;
+    EscapeDelay = 1.0f;
+
     GunEndPoint = FVector(0.f, 0.f, 0.f);
 
     IMC = LoadObject<UInputMappingContext>(nullptr, 
@@ -233,6 +237,11 @@ void APlayerCharacter::Tick(float DeltaTime)
         CurrentRecoilOffset = NewOffset;
         TargetRecoilOffset = NewOffset;
     }
+
+    if (bIsEscaping)
+    {
+        UpdateEscapeDuration(DeltaTime);
+    }
 }
 
 void APlayerCharacter::CheckObjectCloseAhead()
@@ -297,7 +306,7 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
         // 인벤토리 백 업데이트
         if (InventoryUI)
         {
-            if (InventoryUI->bOtherInventory)
+            if (InventoryUI->bWorldInventoryOpen)
             {
                 InventoryUI->DeleteWorldInventory();
             }
@@ -639,7 +648,7 @@ void APlayerCharacter::ToggleInventory(const FInputActionValue& InputValue)
         InventoryUI->ToggleInventory(bOpenInventory);
 
 
-        if (AimedItem && AimedItem->ItemData.Type == EItemType::BAG && !InventoryUI->bOtherInventory)
+        if (AimedItem && AimedItem->ItemData.Type == EItemType::BAG && !InventoryUI->bWorldInventoryOpen)
         {
             InventoryUI->CreateWorldInventory(AimedItem);
         }
@@ -767,4 +776,56 @@ void APlayerCharacter::UseItem()
     ItemUseDuration = 0.0f;
     PlayerUI->UpdateItemUsingTime(ItemUseDuration);
     PlayerUI->HideUsingItemTimer();
+}
+
+
+
+bool APlayerCharacter::IsEscaping()
+{
+    return bIsEscaping;
+}
+
+
+
+void APlayerCharacter::StartEscape(float EscapeTime)
+{
+    bIsEscaping = true;
+    PlayerUI->ToggleEscapeCanvas(true);
+}
+
+void APlayerCharacter::StopEscape()
+{
+    bIsEscaping = false;
+    EscapeDuration = 0.0f;
+    UpdateEscapeDuration(0.0f);
+    PlayerUI->ToggleEscapeCanvas(false);
+}
+
+void APlayerCharacter::UpdateEscapeDuration(float duration)
+{
+    EscapeDuration += duration;
+    PlayerUI->UpdateEscapeTimer(EscapeDuration);
+
+    if (EscapeDuration >= 3.f)
+    {
+        InventoryUI->SaveInventories();
+
+        if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+        {
+            PC->bShowMouseCursor = true;
+            PC->SetInputMode(FInputModeGameAndUI());
+        }
+
+        if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_MainMenuUserWidget.BP_MainMenuUserWidget_C'")))
+        {
+            if (UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass))
+            {
+                SelectMapWidget->AddToViewport();
+            }
+        }
+    }
+
+
+
+
 }

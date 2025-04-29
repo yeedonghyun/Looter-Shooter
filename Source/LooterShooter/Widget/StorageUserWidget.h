@@ -27,24 +27,9 @@ class LOOTERSHOOTER_API UStorageUserWidget : public UInventoryWidgetBase
 public:
 	virtual void NativeConstruct() override;
 
-	void LoadInventoryData();
-	void InitWidget();
 
-	//virtual void UseItem(FItemData data) override;
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	UInventory* PlayerInventory;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	UItemInventory* EquipInventory;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	UInventory* StorageInventory;
-
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	UInventorySlot* ArmorSlot;
 
 
 	UPROPERTY(meta = (BindWidget))
@@ -52,11 +37,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void OnReturnMainButtonClicked();
-	UFUNCTION(BlueprintCallable)
-	void OnSaveButtonClicked();
 
 
-	TArray<UInventorySlot*> PlayerInventoryArray;
-	TArray<UInventorySlot*> EquipInventoryArray;
-	TArray<UInventorySlot*> StorageInventoryArray;
+
 };

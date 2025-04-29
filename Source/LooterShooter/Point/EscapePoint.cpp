@@ -42,10 +42,10 @@ void AEscapePoint::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		UE_LOG(LogTemp, Warning, TEXT("Overlap Begin with: %s"), *OtherActor->GetName());
 		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(OtherActor);
 		{
-			//if (PlayerCharacter)
-			//{
-			//	//PlayerCharacter->StartEscape(EscapeTime);
-			//}
+			if (PlayerCharacter)
+			{
+				PlayerCharacter->StartEscape(EscapeTime);
+			}
 		}
 	}
 }
@@ -53,15 +53,18 @@ void AEscapePoint::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 void AEscapePoint::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OverlayEnd")));
+
 	if (OtherActor && OtherActor != this && OtherComp)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Overlap End with: %s"), *OtherActor->GetName());
 		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(OtherActor);
 		{
-			//if (PlayerCharacter && PlayerCharacter->IsEscaping())
-			//{
-			//	PlayerCharacter->EndEscape(EscapeTime);
-			//}
+			if (PlayerCharacter && PlayerCharacter->IsEscaping())
+			{
+				PlayerCharacter->StopEscape();
+			}
 		}
 	}
 }

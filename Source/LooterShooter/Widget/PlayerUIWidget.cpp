@@ -16,6 +16,8 @@ void UPlayerUIWidget::NativeConstruct()
     }
 
     HideUsingItemTimer();
+
+    ToggleEscapeCanvas(false);
 }
 
 void UPlayerUIWidget::HideCrosshairOnAim()
@@ -96,9 +98,41 @@ void UPlayerUIWidget::UpdateTimerUI(float Time)
     FString FormattedTime = FString::Printf(TEXT("%02d:%02d:%02d"), Hours, Minutes, Seconds);
 
 
+    if (GameTimer)
+    {
+        GameTimer->SetText(FText::FromString(FormattedTime));
+    }
+
+}
+
+void UPlayerUIWidget::ToggleEscapeCanvas(bool isUse)
+{
+    if (isUse)
+    {
+        EscapeCanvas->SetVisibility(ESlateVisibility::Visible);
+    }
+
+    else
+    {
+        EscapeCanvas->SetVisibility(ESlateVisibility::Hidden);
+    }
+}
+
+
+void UPlayerUIWidget::UpdateEscapeTimer(float Time)
+{
+    int32 TotalSeconds = FMath::FloorToInt(Time);
+    int32 Hours = TotalSeconds / 3600;
+    int32 Minutes = (TotalSeconds % 3600) / 60;
+    int32 Seconds = TotalSeconds % 60;
+
+    FString FormattedTime = FString::Printf(TEXT("%02d:%02d:%02d"), Hours, Minutes, Seconds);
+
+
     if (EscapeTimer)
     {
         EscapeTimer->SetText(FText::FromString(FormattedTime));
     }
 
 }
+

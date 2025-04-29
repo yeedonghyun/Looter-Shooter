@@ -7,16 +7,21 @@
 
 
 
+
 void UInventorySlot::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 
-	ProgressBar->SetVisibility(ESlateVisibility::Hidden);
+	//UnderInventoryType = EUnderInventoryType::NONE;
+
+	//ProgressBar->SetVisibility(ESlateVisibility::Hidden);
 
 	bUseItem = false;
 	ItemUseDuration = 0.f;
 	ItemUseDelay = 1.f;
+	//bUnderWorldInventory = false;
+
 }
 
 void UInventorySlot::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -33,9 +38,11 @@ void UInventorySlot::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 }
 
 
-void UInventorySlot::CreateInventorySlot(int idx, EItemType type)
+void UInventorySlot::CreateInventorySlot(int idx, EItemType type, EUnderInventoryType InventoryType)
 {
 	AddToViewport();
+
+	UnderInventoryType = InventoryType;
 
 	_idx = idx;
 	SlotType = type;
@@ -60,8 +67,23 @@ void UInventorySlot::InitInventorySlot(int idx, int InventoryIdx, EItemType type
 void UInventorySlot::StartConsume()
 {
 	bUseItem = true;
-	ProgressBar->SetVisibility(ESlateVisibility::Visible);
-	//ItemUseDelay
+
+	if (TSubclassOf<UCircleProgressBar> Progress = LoadClass<UCircleProgressBar>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Inventory/BP_CircleProgressBar.BP_CircleProgressBar_C'")))
+	{
+		ProgressBar = CreateWidget<UCircleProgressBar>(GetWorld(), Progress);
+
+		if (ProgressBar)
+		{
+			if (UOverlay* SlotOverlay = Cast<UOverlay>(GetWidgetFromName(TEXT("RootOverlay")))) // 이름에 맞게
+			{
+				if (UOverlaySlot* OverlaySlot = Cast<UOverlaySlot>(SlotOverlay->AddChild(ProgressBar)))
+				{
+					OverlaySlot->SetHorizontalAlignment(HAlign_Fill); 
+					OverlaySlot->SetVerticalAlignment(VAlign_Fill);
+				}
+			}
+		}
+	}
 }
 
 void UInventorySlot::CompleteConsume()
@@ -71,8 +93,11 @@ void UInventorySlot::CompleteConsume()
 	IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 
 	ItemUseDuration = 0.f;
-	ProgressBar->SetPercentage(ItemUseDuration);
+
 	ProgressBar->SetVisibility(ESlateVisibility::Hidden);
+	ProgressBar->RemoveFromParent();
+
+	//ProgressBar->SetPercentage(ItemUseDuration);
 }
 
 

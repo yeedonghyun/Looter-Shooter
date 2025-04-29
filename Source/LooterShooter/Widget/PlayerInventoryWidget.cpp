@@ -9,56 +9,11 @@ void UPlayerInventoryWidget::NativeConstruct()
 	bWorldInventoryOpen = false;
 	bUsingItem = false;
 
-	WorldInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
-	WorldInventory->SetVisibility(ESlateVisibility::Hidden);
-	EquipInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UPlayerInventoryWidget::HandleSwapRequest);
-	EquipInventory->ItemSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
-	//ArmorSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
-
-	InitWidget();
-
-	if (this->SaveButton)
-	{
-		this->SaveButton->OnClicked.AddDynamic(this, &UPlayerInventoryWidget::OnSaveButtonClicked);
-	}
-
 }
 
 void UPlayerInventoryWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-}
-
-
-void UPlayerInventoryWidget::InitWidget()
-{
-	USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
-
-	CreateInventory(PlayerInventoryArray, PlayerInventory->Grid, SaveData->InventoryRowSize, SaveData->InventoryColSize);
-
-	if (SaveData->InventoryItems.Num() != 0)
-	{
-		SetArrayData(PlayerInventoryArray, SaveData->InventoryItems);
-	}
-
-	if (SaveData->bEquipInventory)
-	{
-		FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
-
-		if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
-		{
-			AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
-
-			CreateItemInventory(EquipInventoryArray, EquipInventory->ItemSlot, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height);
-			EquipInventory->ItemSlot->SetSlotFromItem(DefaultBag->ItemData);
-		}
-
-		if (SaveData->EquipInventoryItems.Num() != 0)
-		{
-			SetArrayData(EquipInventoryArray, SaveData->EquipInventoryItems);
-		}
-	}
-
 }
 
 
@@ -72,30 +27,33 @@ int UPlayerInventoryWidget::FindEmptySlot(TArray<UInventorySlot*>& SlotArray)
 {
 	for (int i = 0; i < SlotArray.Num(); i++)
 	{
-		if (!SlotArray[i]->SlotData.bHaveItem) { return i; }
+		if (!SlotArray[i]->SlotData.bHaveItem) 
+		{ 
+			return i;
+		}
 	}
-
 	return -1;
 }
 
 
 void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
 {
-	if (WorldInventoryArray.Num() > 0)
+	if (WorldBagInventoryArray.Num() > 0)
 	{
 		DeleteWorldInventory();
 	}
 
 	Bag = Cast<AItem_bag>(AimedItem);
-	CreateItemInventory(WorldInventoryArray, WorldInventory->ItemSlot, WorldInventory->Grid, Bag->Width, Bag->Height);
-	bOtherInventory = true;
+
+	CreateInventory(WorldBagInventoryArray, WorldInventory->Grid, Bag->Width, Bag->Height, EUnderInventoryType::WORLDBAG);
+	bWorldInventoryOpen = true;
 
 	TArray<FSlotData>& Items = Bag->savedItems;
 	for (int i = 0; i < Items.Num(); i++)
 	{
 		if (Items[i].bHaveItem)
 		{
-			UInventorySlot* slot = Cast<UInventorySlot>(WorldInventoryArray[i]);
+			UInventorySlot* slot = Cast<UInventorySlot>(WorldBagInventoryArray[i]);
 			slot->SetSlotFromSlot(Items[i]);
 		}
 	}
@@ -106,56 +64,24 @@ void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
 
 void UPlayerInventoryWidget::DeleteWorldInventory()
 {
-	TArray<FSlotData>& Items = Bag->savedItems;
+	//TArray<FSlotData>& Items = Bag->savedItems;
 
-	for (int32 i = 0; i < WorldInventoryArray.Num(); i++)
+	//for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
+	//{
+	//	Items[i] = WorldBagInventoryArray[i]->SlotData;
+	//}
+
+	for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
 	{
-		Items[i] = WorldInventoryArray[i]->SlotData;
+		WorldBagInventoryArray[i]->RemoveFromParent();
 	}
 
-	for (int32 i = 0; i < WorldInventoryArray.Num(); i++)
-	{
-		WorldInventoryArray[i]->RemoveFromParent();
-	}
-
-	WorldInventoryArray.Empty();
-	bOtherInventory = false;
+	WorldBagInventoryArray.Empty();
+	bWorldInventoryOpen = false;
 	WorldInventory->SetVisibility(ESlateVisibility::Hidden);
 }
 
 
-
-void UPlayerInventoryWidget::ToggleInventory(bool bOpen)
-{
-	if (bOpen)
-	{ 
-		SetIsEnabled(true);
-		SetRenderOpacity(1.0f);
-		SetUIMode(ESlateVisibility::Visible, true, FInputModeGameAndUI()); 
-	}
-
-	else 
-	{ 
-		SetIsEnabled(false);
-		SetRenderOpacity(0.0f);
-		SetUIMode(ESlateVisibility::Visible, false, FInputModeGameOnly());
-		//SetUIMode(ESlateVisibility::Hidden, false, FInputModeGameOnly()); 
-
-		SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
-		SlotToolTip->bShouldFollowMouse = false;
-	}
-}
-
-void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData)
-{
-	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-	{
-		PC->bShowMouseCursor = showCursor;
-		PC->SetInputMode(InData);
-	}
-
-	SetVisibility(Visible);
-}
 
 
 void UPlayerInventoryWidget::UseItem(UInventorySlot* TargetSlot)
@@ -171,33 +97,11 @@ void UPlayerInventoryWidget::UseItem(UInventorySlot* TargetSlot)
 }
 
 
-void UPlayerInventoryWidget::OnSaveButtonClicked()
-{
-	USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
-
-	TArray<FSlotData> tmp;
-	for (int i = 0; i < PlayerInventoryArray.Num(); i++)
-	{
-		tmp.Add(PlayerInventoryArray[i]->SlotData);
-	}
-
-	SaveData->InventoryItems = tmp;
-
-	TArray<FSlotData> tmp2;
-	for (int i = 0; i < EquipInventoryArray.Num(); i++)
-	{
-		tmp2.Add(EquipInventoryArray[i]->SlotData);
-	}
-
-	SaveData->EquipInventoryItems = tmp2;
-
-
-	USaveManager::SaveDataSet("Save1", SaveData);
-
-}
 
 void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("SWAP")));
+
 	if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
 	{
 		UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
@@ -222,8 +126,7 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 		}
 
 		SwapSlotData(DraggingSlot, TargetSlot);
-		std::swap(WorldInventoryArray, EquipInventoryArray);
-
+		//std::swap(WorldBagInventoryArray, EquipInventoryArray);
 	}
 
 	else if (DraggingSlot->SlotType != EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
@@ -256,7 +159,7 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 			if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
 			{
 				AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
-				CreateItemInventory(EquipInventoryArray, EquipInventory->ItemSlot, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height);
+				CreateInventory(EquipInventoryArray, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height, EUnderInventoryType::EQUIP);
 				SwapSlotData(DraggingSlot, TargetSlot);
 			}
 		}
@@ -266,9 +169,67 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 
 	else
 	{
+		bool bUpdateWorldBagData = false;
+
 		SwapSlotData(DraggingSlot, TargetSlot);
+
+		if (DraggingSlot->UnderInventoryType != TargetSlot->UnderInventoryType)
+		{
+			TArray<UInventorySlot*>& DragArray = ReturnInventoryArray(DraggingSlot->UnderInventoryType);
+			TArray<UInventorySlot*>& TargetArray = ReturnInventoryArray(TargetSlot->UnderInventoryType);
+
+			//std::swap(DragArray, TargetArray);
+
+			if (DraggingSlot->UnderInventoryType == EUnderInventoryType::WORLDBAG)
+			{
+				bUpdateWorldBagData = true;
+			}
+
+			if (TargetSlot->UnderInventoryType == EUnderInventoryType::WORLDBAG)
+			{
+				bUpdateWorldBagData = true;
+			}
+
+			if (bUpdateWorldBagData)
+			{
+				TArray<FSlotData>& Items = Bag->savedItems;
+
+				for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
+				{
+					Items[i] = WorldBagInventoryArray[i]->SlotData;
+				}
+			}
+
+		}
+
+	}
+}
+
+
+void UPlayerInventoryWidget::ToggleInventory(bool bOpen)
+{
+	if (bOpen)
+	{
+		SetUIMode(ESlateVisibility::Visible, true, FInputModeGameAndUI(), true, 1.0f);
 	}
 
+	else
+	{
+		SetUIMode(ESlateVisibility::Visible, false, FInputModeGameOnly(), false, 0.0f);
+		SlotToolTip->SetVisibility(ESlateVisibility::Hidden);
+		SlotToolTip->bShouldFollowMouse = false;
+	}
+}
 
+void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData, bool bSetIsEnable, float UIOpacity)
+{
+	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+	{
+		PC->bShowMouseCursor = showCursor;
+		PC->SetInputMode(InData);
+	}
 
+	SetIsEnabled(bSetIsEnable);
+	SetRenderOpacity(UIOpacity);
+	SetVisibility(Visible);
 }

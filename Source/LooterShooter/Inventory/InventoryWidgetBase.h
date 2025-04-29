@@ -40,10 +40,14 @@ public:
 	EInventoryWidgetType InventoryWidgetType;
 
 	bool bDragging;
+	bool bHaveEquipInventory;
 
 
-	void CreateInventory(TArray<UInventorySlot*>& SlotArray, UVerticalBox* ParentGrid, int32 rowSize, int32 colSize);
-	void CreateItemInventory(TArray<UInventorySlot*>& SlotArray, UInventorySlot* ItemSlot, UVerticalBox* ParentGrid, int32 rowSize, int32 colSize);
+	void InitWidget();
+
+	void CreateInventory(TArray<UInventorySlot*>& SlotArray, UVerticalBox* ParentGrid, int32 rowSize, int32 colSize, EUnderInventoryType InventoryType);
+
+
 	void SetArrayData(TArray<UInventorySlot*>& SlotArray, TArray<FSlotData> ArrayData);
 	void SwapSlotData(UInventorySlot*& DraggingSlot, UInventorySlot*& TargetSlot);
 
@@ -51,15 +55,35 @@ public:
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot);
 	virtual void UseItem(UInventorySlot* TargetSlot);
 
+	UFUNCTION(BlueprintCallable)
+	void SaveInventories();
+
+	TArray<UInventorySlot*>& ReturnInventoryArray(EUnderInventoryType InventoryType);
 
 
-	UTooltip* SlotToolTip;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UInventory* PlayerInventory;
+	TArray<UInventorySlot*> PlayerInventoryArray;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UItemInventory* EquipInventory;
+	TArray<UInventorySlot*> EquipInventoryArray;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UItemInventory* WorldInventory;
+	TArray<UInventorySlot*> WorldBagInventoryArray;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UInventory* WorldBoxInventory;
+	TArray<UInventorySlot*> WorldBoxInventoryArray;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UInventory* StorageInventory;
+	TArray<UInventorySlot*> StorageInventoryArray;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-		UButton* SaveButton;
+	UButton* SaveButton;
 
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	//UItemInventory* WorldBoxInventory;
+	UTooltip* SlotToolTip;
 
 };

@@ -36,69 +36,32 @@ public:
 	bool bWorldInventoryOpen;
 	bool bUsingItem;
 
+
 	AItem_bag* Bag;
 
-	//	UTooltip* SlotToolTip;
-	//virtual void Tick(float DeltaTime) override;
 
-	void InitWidget();
+	//void InitWidget();
 	int FindEmptySlot(TArray<UInventorySlot*>& SlotArray);
 	void AddItemEmptySlot(AItemBase* AimedItem);
 	void CreateWorldInventory(AItemBase* AimedItem);
 	void DeleteWorldInventory();
 
 
-	void ToggleInventory(bool bOpen);
-	void SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData);
-
-
 	virtual void UseItem(UInventorySlot* TargetSlot) override;
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot) override;
 
+
+	void ToggleInventory(bool bOpen);
+	void SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData, bool bSetIsEnable, float UIOpacity);
+
+
+
 protected:
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	UInventory* PlayerInventory;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	UItemInventory* EquipInventory;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	UItemInventory* WorldInventory;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	UItemInventory* WorldBoxInventory;
-
-
-
-
-
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	//UInventorySlot* ArmorSlot;
 
 
 
 public:
-
-	TArray<UInventorySlot*> PlayerInventoryArray;
-	TArray<UInventorySlot*> WorldInventoryArray;
-	TArray<UInventorySlot*> EquipInventoryArray;
-
-	int32 InventoryRowSize;
-	int32 InventoryColSize;
-
-	UFUNCTION(BlueprintCallable)
-	void OnSaveButtonClicked();
-
-
-	UPROPERTY(EditAnywhere, Category = "Inventory")
-	bool bEquipInventory;
-
-
-
-
-	bool bOtherInventory;
 
 
 

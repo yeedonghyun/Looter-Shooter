@@ -73,6 +73,8 @@ protected:
 
 	void UpdateItemUseDuration(float duration);
 
+	void UpdateEscapeDuration(float duration);
+
 	UInputAction* MovementAction;
 	UInputAction* CameraAction;
 	UInputAction* RunAction;
@@ -98,6 +100,12 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+
+	bool IsEscaping();
+	void StartEscape(float EscapeTime);
+	void StopEscape();
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* IMC;
@@ -165,6 +173,10 @@ public:
 	float ItemUseDelay;
 
 	FItemData UsingItemData;
+
+	bool bIsEscaping;
+	float EscapeDuration;
+	float EscapeDelay;
 
 private:
 	//Run
