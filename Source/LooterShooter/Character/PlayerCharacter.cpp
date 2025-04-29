@@ -1,5 +1,6 @@
 #include "PlayerCharacter.h"
 #include "../Bullet/Bullet.h"
+#include <Kismet/GameplayStatics.h>
 
 APlayerCharacter::APlayerCharacter() {
     PrimaryActorTick.bCanEverTick = true;
@@ -786,7 +787,7 @@ bool APlayerCharacter::IsEscaping()
 }
 
 
-
+/////////////////////////////////////////////////////////////////
 void APlayerCharacter::StartEscape(float EscapeTime)
 {
     bIsEscaping = true;
@@ -810,19 +811,22 @@ void APlayerCharacter::UpdateEscapeDuration(float duration)
     {
         InventoryUI->SaveInventories();
 
-        if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-        {
-            PC->bShowMouseCursor = true;
-            PC->SetInputMode(FInputModeGameAndUI());
-        }
+        UGameplayStatics::OpenLevel(this, FName("Main"));
 
-        if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_MainMenuUserWidget.BP_MainMenuUserWidget_C'")))
-        {
-            if (UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass))
-            {
-                SelectMapWidget->AddToViewport();
-            }
-        }
+
+        //if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+        //{
+        //    PC->bShowMouseCursor = true;
+        //    PC->SetInputMode(FInputModeGameAndUI());
+        //}
+
+        //if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_MainMenuUserWidget.BP_MainMenuUserWidget_C'")))
+        //{
+        //    if (UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass))
+        //    {
+        //        SelectMapWidget->AddToViewport();
+        //    }
+        //}
     }
 
 
