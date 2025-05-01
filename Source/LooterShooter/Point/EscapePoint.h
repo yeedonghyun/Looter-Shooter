@@ -22,7 +22,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Escape")
 	float EscapeTime;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Collision")
 	UBoxComponent* CollisionBox;
 
 public:

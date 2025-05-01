@@ -148,6 +148,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* GunReloadAnimation;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	UParticleSystemComponent* MuzzleFlash;
+
+	UFUNCTION(BlueprintCallable)
+	void ApplyDamage(int Damage);
+
 	int CurrentAmmo;
 	int MagazineAmmo;
 	bool bSemiFire;
@@ -157,6 +163,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 	float Health;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 	float Armor;
 

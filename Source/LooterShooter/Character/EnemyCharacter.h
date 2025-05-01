@@ -52,6 +52,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void UpdateWalkSpeed(float NewWalkSpeed);
 
+	UFUNCTION(BlueprintCallable)
+	void ApplyDamage(int Damage);
+
+	UPROPERTY(BlueprintReadWrite)
+	int Health;
+
 protected:
 
 	UFUNCTION(BlueprintCallable)
@@ -61,7 +67,7 @@ protected:
 	bool IsAimedPlayer();
 
 	UFUNCTION(BlueprintCallable)
-	void Fire();
+	bool Fire();
 
 	UFUNCTION(BlueprintCallable)
 	void ResetShoot();
@@ -70,10 +76,10 @@ protected:
 	void ResetLastKnownPlayerLocation() { LastKnownPlayerLocation = FVector::ZeroVector; }
 
 	UFUNCTION(BlueprintCallable)
-	void MoveToLocation(FVector TargetLocation, float AcceptanceRadius);
+	bool MoveToLocation(FVector TargetLocation, float AcceptanceRadius);
 
 	UFUNCTION(BlueprintCallable)
-	void MoveToTarget(AActor* TargetActor, float AcceptanceRadius);
+	bool MoveToTarget(AActor* TargetActor, float AcceptanceRadius);
 
 	UFUNCTION(BlueprintCallable)
 	void Rotate(float Degree, float RotationSpeed);
@@ -98,6 +104,10 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	bool GetRecentDetectPlayer() { return bRecentDetectPlayer; }
+
+	UFUNCTION(BlueprintCallable)
+	AActor* GetWeapon() { return Weapon; }
+	
 
 	void CheckRecentlyDetectPlayer();
 

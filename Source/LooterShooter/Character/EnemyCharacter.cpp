@@ -1,6 +1,7 @@
 #include "EnemyCharacter.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 AEnemyCharacter::AEnemyCharacter()
@@ -16,6 +17,7 @@ AEnemyCharacter::AEnemyCharacter()
     CurrentAmmo = 30;
     bShoot = false;
     bRecentDetectPlayer = false;
+    Health = 100;
 
     CurrentState = EEnemyState::Idle;
 
@@ -107,7 +109,7 @@ bool AEnemyCharacter::IsDetectPlayer()
 {
     if (!TargetPlayer) {
         bDetectPlayer = false;
-        LostPlayer = false;
+        LostPlayer = true;
         return false;
     }
 
@@ -118,24 +120,19 @@ bool AEnemyCharacter::IsDetectPlayer()
     FCollisionQueryParams Params;
     Params.AddIgnoredActor(this);
 
-    bool bHit = GetWorld()->SweepSingleByChannel(
+    bool bHit = GetWorld()->LineTraceSingleByChannel(
         Hit,
         EnemyLocation,
         PlayerLocation,
-        FQuat::Identity,
+		//ECC_Visibility,
         ECC_WorldDynamic,
-        FCollisionShape::MakeSphere(50.f),
         Params
     );
 
-    if (FVector::Dist(LastKnownPlayerLocation, GetActorLocation()) < 50.f) {
-        LostPlayer = false;
-    }
-
-    if (!bHit || !Hit.GetActor()->ActorHasTag("Player")) {
+    if ((!bHit || !Hit.GetActor()->ActorHasTag("Player")) && !Hit.GetActor()->ActorHasTag("IgnoreDetection")) {
         if (bDetectPlayer) {
             bRecentDetectPlayer = true;
-            GetWorldTimerManager().SetTimer(DetectPlayerTimerHandle, this, &AEnemyCharacter::CheckRecentlyDetectPlayer, 0.2f, false);
+            GetWorldTimerManager().SetTimer(DetectPlayerTimerHandle, this, &AEnemyCharacter::CheckRecentlyDetectPlayer, 0.4f, false);
         }
         bDetectPlayer = false;
         return false;
@@ -150,22 +147,24 @@ bool AEnemyCharacter::IsDetectPlayer()
 
     if (Distance > MaxDetectionRange || Angle > MaxDetectionAngle) {
         if (bDetectPlayer) {
-			bRecentDetectPlayer = true;
-            GetWorldTimerManager().SetTimer(DetectPlayerTimerHandle, this, &AEnemyCharacter::CheckRecentlyDetectPlayer, 0.2f, false);
+            bRecentDetectPlayer = true;
+            GetWorldTimerManager().SetTimer(DetectPlayerTimerHandle, this, &AEnemyCharacter::CheckRecentlyDetectPlayer, 0.4f, false);
         }
         bDetectPlayer = false;
         return false;
     }
 
     bDetectPlayer = true;
+    LostPlayer = false; 
+    LastKnownPlayerLocation = PlayerLocation;
     return true;
 }
 
-void AEnemyCharacter::CheckRecentlyDetectPlayer() {
+void AEnemyCharacter::CheckRecentlyDetectPlayer()
+{
     if (!bDetectPlayer && bRecentDetectPlayer) {
-        LastKnownPlayerLocation = TargetPlayer->GetActorLocation();
         LostPlayer = true;
-		bRecentDetectPlayer = false;
+        bRecentDetectPlayer = false;
     }
 }
 
@@ -183,24 +182,40 @@ bool AEnemyCharacter::IsAimedPlayer()
     return Angle < 10.0f;
 }
 
-void AEnemyCharacter::MoveToLocation(FVector TargetLocation, float AcceptanceRadius)
+bool AEnemyCharacter::MoveToLocation(FVector TargetLocation, float AcceptanceRadius)
 {
     AAIController* AIController = Cast<AAIController>(GetController());
-    if (!AIController) return;
+    if (!AIController) return false;
 
     EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(TargetLocation, AcceptanceRadius);
+
+    if (MoveResult == EPathFollowingRequestResult::Failed)
+    {
+		return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 
-void AEnemyCharacter::MoveToTarget(AActor* TargetActor, float AcceptanceRadius)
+bool AEnemyCharacter::MoveToTarget(AActor* TargetActor, float AcceptanceRadius)
 {
-    if (!TargetActor) return;
-
     AAIController* AIController = Cast<AAIController>(GetController());
-    if (!AIController) return;
+    if (!TargetActor || !AIController) return false;
 
     FVector TargetLocation = TargetActor->GetActorLocation();
 
     EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(TargetLocation, AcceptanceRadius);
+
+    if (MoveResult == EPathFollowingRequestResult::Failed)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 
 void AEnemyCharacter::Rotate(float Degree, float RotationSpeed)
@@ -233,10 +248,10 @@ void AEnemyCharacter::RotateToTarget(AActor* TargetActor, float RotationSpeed)
     SetActorRotation(NewRotation);
 }
 
-void AEnemyCharacter::Fire()
+bool AEnemyCharacter::Fire()
 {
     if (!bDetectPlayer || bShoot)
-        return;
+        return false;
 
     if (BulletClass && Weapon) {
         FVector MuzzleLocation = Weapon->GetEndPointLocation();
@@ -254,9 +269,22 @@ void AEnemyCharacter::Fire()
     bShoot = true;
 
     GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &AEnemyCharacter::ResetShoot, FireRate, false);
+
+    return true;
 }
 
 void AEnemyCharacter::ResetShoot()
 {
     bShoot = false;
+}
+
+void AEnemyCharacter::ApplyDamage(int Damage)
+{
+	Health -= Damage;
+
+	if (Health <= 0)
+	{
+        Weapon->Destroy();
+		Destroy();
+	}
 }

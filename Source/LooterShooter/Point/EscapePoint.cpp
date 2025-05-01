@@ -11,13 +11,7 @@ AEscapePoint::AEscapePoint()
 
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("EscapeBox"));
 	RootComponent = CollisionBox;
-	CollisionBox->SetBoxExtent(FVector(100.f, 100.f, 100.f));
-
-	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	CollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
-	CollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);       
-	CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	CollisionBox->SetGenerateOverlapEvents(true);
+	CollisionBox->SetBoxExtent(FVector(100.f, 100.f, 100.f)); 
 }
 
 void AEscapePoint::BeginPlay()
@@ -39,7 +33,6 @@ void AEscapePoint::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 {
 	if (OtherActor && OtherActor != this && OtherComp)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Overlap Begin with: %s"), *OtherActor->GetName());
 		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(OtherActor);
 		{
 			if (PlayerCharacter)
@@ -53,12 +46,11 @@ void AEscapePoint::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 void AEscapePoint::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OverlayEnd")));
+	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OverlayEnd")));
+	//UE_LOG(LogTemp, Warning, TEXT("Overlap End with: %s"), *OtherActor->GetName());
 
 	if (OtherActor && OtherActor != this && OtherComp)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Overlap End with: %s"), *OtherActor->GetName());
 		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(OtherActor);
 		{
 			if (PlayerCharacter && PlayerCharacter->IsEscaping())

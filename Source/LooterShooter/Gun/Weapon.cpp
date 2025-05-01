@@ -23,6 +23,11 @@ void AWeapon::BeginPlay()
 		{
 			EndPoint = Cast<USceneComponent>(Component);
 		}
+
+		if (Component && Component->ComponentHasTag(TEXT("FIreEeffect")))
+		{
+			MuzzleFlash = Cast<UParticleSystemComponent>(Component);
+		}
     }
 }
 
@@ -44,4 +49,12 @@ FVector AWeapon::GetEndPointLocation()
 	}
 
 	return EndPoint->GetComponentLocation();
+}
+
+void AWeapon::SpawnMuzzleFlash()
+{
+	if (MuzzleFlash && SkeletalMeshComponent)
+	{
+		MuzzleFlash->ActivateSystem(true);
+	}
 }

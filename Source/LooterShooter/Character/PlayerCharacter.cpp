@@ -33,7 +33,7 @@ APlayerCharacter::APlayerCharacter() {
     EscapeDuration = 0.0f;
     EscapeDelay = 1.0f;
 
-    GunEndPoint = FVector(0.f, 0.f, 0.f);
+	GunEndPoint = FVector::ZeroVector;
 
     IMC = LoadObject<UInputMappingContext>(nullptr, 
         TEXT("/Script/EnhancedInput.InputMappingContext'/Game/Data/IMC_FPS.IMC_FPS'")); 
@@ -114,7 +114,7 @@ void APlayerCharacter::BeginPlay()
         }
     }
 
-    if (RunCurve != nullptr)
+    if (RunCurve)
     {
         RunTimeLineUpdateDelegate.BindUFunction(this, FName("RunStart"));
         RunTimeLineFinishDelegate.BindUFunction(this, FName("RunEnd"));
@@ -123,7 +123,7 @@ void APlayerCharacter::BeginPlay()
         RunTimeline.SetTimelineFinishedFunc(RunTimeLineFinishDelegate);
     }
 
-    if (CrouchCurve != nullptr) 
+    if (CrouchCurve) 
     {
         CrouchTimeLineUpdateDelegate.BindUFunction(this, FName("CrouchStart"));
         CrouchTimeLineFinishDelegate.BindUFunction(this, FName("CrouchEnd"));
@@ -192,11 +192,9 @@ void APlayerCharacter::BeginPlay()
 
     LoadInventoryClass();
 
-
     GetWorldTimerManager().SetTimer(HandStaminaTimerHandle, this, &APlayerCharacter::HandStaminaControl, timerRepeatTime, true);
     GetWorldTimerManager().SetTimer(StaminaTimerHandle, this, &APlayerCharacter::StaminaControl, timerRepeatTime, true);
 }
-
 
 void APlayerCharacter::Tick(float DeltaTime)
 {
@@ -489,6 +487,29 @@ void APlayerCharacter::UnRun(const FInputActionValue& InputValue)
     }
 }
 
+void APlayerCharacter::ApplyDamage(int Damage)
+{
+	if (Armor > 0) {
+		Armor -= Damage;
+        Damage = 0;
+
+		if (Armor <= 0) {
+			Armor = 0;
+		}
+	}
+
+	Health -= Damage;
+
+	if (Health <= 0)
+	{
+        UGameplayStatics::OpenLevel(this, FName("Main"));
+	}
+
+	if (PlayerUI) {
+		PlayerUI->SetHealth(Health / MaxHealth);
+	}
+}
+
 void APlayerCharacter::RunStart(float Output)
 {
     if (Camera)
@@ -558,13 +579,14 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
             FVector MuzzleLocation = Weapon->GetEndPointLocation();
 
             GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, Camera->GetCameraRotation());
+			Weapon->SpawnMuzzleFlash();
         }
     }
 
     AddRecoil();
 
     bShoot = true;
-    
+
     float AnimationDuration = 0.2;
     GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::ResetShoot, AnimationDuration, false);
 }
@@ -638,7 +660,6 @@ void APlayerCharacter::CrouchStart(float Output)
 
 void APlayerCharacter::CrouchEnd()
 {
-    UE_LOG(LogTemp, Log, TEXT("Crouch Timeline Finished!"));
 }
 
 void APlayerCharacter::ToggleInventory(const FInputActionValue& InputValue)
