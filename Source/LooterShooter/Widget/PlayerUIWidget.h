@@ -74,6 +74,9 @@ public:
 	void UpdateEscapeTimer(float Time);
 	void ToggleEscapeCanvas(bool isUse);
 
+	void ToggleInfoUI(bool isUse);
+	void UpdateInfoUI(FString name, bool bCanPick);
+
 
 	UPROPERTY(meta = (BindWidget))
 	UEditableTextBox* GameTimer;
@@ -82,7 +85,10 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UEditableTextBox* EscapeTimer;
 
-
 	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* InfoUI;
+
+	//FTimerHandle UpdateInfoUIHandle;
 
 };

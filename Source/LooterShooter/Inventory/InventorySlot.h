@@ -69,6 +69,7 @@ public:
 
 public:
 
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	EUnderInventoryType UnderInventoryType;
 
 	bool bUseItem;

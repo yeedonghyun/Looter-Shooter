@@ -56,6 +56,11 @@ public:
 	virtual void UseItem(UInventorySlot* TargetSlot);
 
 	UFUNCTION(BlueprintCallable)
+	void ShowWarningMessage(FString fs);
+
+	void ToggleWarningMessage(bool bActive);
+
+	UFUNCTION(BlueprintCallable)
 	void SaveInventories();
 
 	TArray<UInventorySlot*>& ReturnInventoryArray(EUnderInventoryType InventoryType);
@@ -85,5 +90,13 @@ public:
 	UButton* SaveButton;
 
 	UTooltip* SlotToolTip;
+
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	//UEditableTextBox* InventoryWarningMessage;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* InventoryWarningMessage;
+
+	FTimerHandle UpdateHandle;
 
 };

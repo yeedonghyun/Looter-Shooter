@@ -12,6 +12,9 @@
 #include "Components/VerticalBox.h"
 #include "Components/HorizontalBox.h"
 #include "../Item/Item_bag.h"
+
+#include "../Item/Item_Inventory.h"
+
 #include "Components/TextBlock.h"
 #include "../Inventory/Tooltip.h"
 #include "../Inventory/Inventory.h"
@@ -37,8 +40,8 @@ public:
 	bool bUsingItem;
 
 
-	AItem_bag* Bag;
-
+	//AItem_bag* Bag;
+	AItem_Inventory* InventoryItem;
 
 	//void InitWidget();
 	int FindEmptySlot(TArray<UInventorySlot*>& SlotArray);

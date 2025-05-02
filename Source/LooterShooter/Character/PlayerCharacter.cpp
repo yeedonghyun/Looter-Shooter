@@ -270,19 +270,22 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
     FVector EndPoint = ((Rotation.Vector() * ViewDis) + Start);
     FCollisionQueryParams TraceParams;
     TraceParams.bTraceComplex = true;
-    TraceParams.AddIgnoredActor(this); 
+    TraceParams.AddIgnoredActor(this);
 
     bool bCollision = GetWorld()->LineTraceSingleByChannel(HitOut, Start, EndPoint, ECC_Visibility, TraceParams);
 
     if (bCollision)
     {
         AActor* HitActor = HitOut.GetActor();
-        if (HitActor && HitActor->IsA(AItemBase::StaticClass())) 
+        if (HitActor && HitActor->IsA(AItemBase::StaticClass()))
         {
             AimedItem = Cast<AItemBase>(HitActor);
             if (PlayerUI)
             {
                 PlayerUI->ShowCrosshairOnAimEnd();
+                PlayerUI->ToggleInfoUI(true);
+                PlayerUI->UpdateInfoUI(AimedItem->ItemData.Name, true);
+                //	InventoryItem = Cast<AItem_Inventory>(AimedItem);
             }
         }
         else
@@ -291,6 +294,7 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
             if (PlayerUI)
             {
                 PlayerUI->HideCrosshairOnAim();
+                PlayerUI->ToggleInfoUI(false);
             }
         }
     }
@@ -300,6 +304,7 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
         if (PlayerUI)
         {
             PlayerUI->HideCrosshairOnAim();
+            PlayerUI->ToggleInfoUI(false);
         }
 
         // 인벤토리 백 업데이트
@@ -620,7 +625,7 @@ void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 {
     if (AimedItem) {
 
-        if (AimedItem->ItemData.Type == EItemType::BAG)
+        if (AimedItem->ItemData.Type == EItemType::INVENTORY)
         {
             AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
             TArray<FSlotData>& Items = Bag->savedItems;
@@ -670,7 +675,7 @@ void APlayerCharacter::ToggleInventory(const FInputActionValue& InputValue)
         InventoryUI->ToggleInventory(bOpenInventory);
 
 
-        if (AimedItem && AimedItem->ItemData.Type == EItemType::BAG && !InventoryUI->bWorldInventoryOpen)
+        if (AimedItem && AimedItem->ItemData.Type == EItemType::INVENTORY && !InventoryUI->bWorldInventoryOpen)
         {
             InventoryUI->CreateWorldInventory(AimedItem);
         }

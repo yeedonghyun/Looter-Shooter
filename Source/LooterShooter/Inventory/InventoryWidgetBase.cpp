@@ -26,6 +26,9 @@ void UInventoryWidgetBase::NativeConstruct()
 	{
 		this->SaveButton->OnClicked.AddDynamic(this, &UInventoryWidgetBase::SaveInventories);
 	}
+
+
+	ToggleWarningMessage(false);
 }
 
 
@@ -85,7 +88,12 @@ void UInventoryWidgetBase::InitWidget()
 	if (WorldInventory)
 	{
 		WorldInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UInventoryWidgetBase::HandleSwapRequest);
-		WorldInventory->SetVisibility(ESlateVisibility::Hidden);
+		WorldInventory->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (WorldBoxInventory)
+	{
+		WorldBoxInventory->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 }
@@ -189,71 +197,7 @@ void UInventoryWidgetBase::HandleSlotActionRequest(UInventorySlot* TargetSlot, E
 
 void UInventoryWidgetBase::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
-	//if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
-	//{
-	//	UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
-	//	UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
 
-	//	UVerticalBox* FromGrid = FromInventory->Grid;
-	//	UVerticalBox* ToGrid = ToInventory->Grid;
-
-	//	TArray<UWidget*> FromChildren = FromGrid->GetAllChildren();
-	//	TArray<UWidget*> ToChildren = ToGrid->GetAllChildren();
-
-	//	FromGrid->ClearChildren();
-	//	ToGrid->ClearChildren();
-
-	//	for (UWidget* Child : FromChildren)
-	//	{
-	//		ToGrid->AddChild(Child);
-	//	}
-	//	for (UWidget* Child : ToChildren)
-	//	{
-	//		FromGrid->AddChild(Child);
-	//	}
-
-	//	SwapSlotData(DraggingSlot, TargetSlot);
-	//	std::swap(WorldBagInventoryArray, EquipInventoryArray);
-
-	//}
-
-	//else if (DraggingSlot->SlotType != EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
-	//{
-	//	UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
-	//	UVerticalBox* ToGrid = ToInventory->Grid;
-	//	TArray<UWidget*> ToChildren = ToGrid->GetAllChildren();
-	//	ToGrid->ClearChildren();
-	//	SwapSlotData(DraggingSlot, TargetSlot);
-	//}
-
-	//else if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType != EItemType::BAG)
-	//{
-	//	if (TargetSlot->SlotData.Type == EItemType::BAG)
-	//	{
-	//		UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
-	//		UVerticalBox* FromGrid = FromInventory->Grid;
-	//		TArray<UWidget*> FromChildren = FromGrid->GetAllChildren();
-	//		FromGrid->ClearChildren();
-
-	//		USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
-
-	//		FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
-
-	//		if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
-	//		{
-	//			AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
-	//			CreateInventory(EquipInventoryArray, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height, EUnderInventoryType::EQUIP);
-	//			SwapSlotData(DraggingSlot, TargetSlot);
-	//		}
-	//	}
-
-	//}
-
-
-	//else
-	//{
-	//	SwapSlotData(DraggingSlot, TargetSlot);
-	//}
 }
 
 void UInventoryWidgetBase::UseItem(UInventorySlot* TargetSlot)
@@ -313,7 +257,40 @@ TArray<UInventorySlot*>& UInventoryWidgetBase::ReturnInventoryArray(EUnderInvent
 
 	}
 
-
 	return PlayerInventoryArray;
 }
 
+
+
+void UInventoryWidgetBase::ShowWarningMessage(FString fs)
+{
+	if (InventoryWarningMessage)
+	{
+		if (UpdateHandle.IsValid())
+		{
+			UpdateHandle.Invalidate();
+		}
+
+		GetWorld()->GetTimerManager().SetTimer(UpdateHandle, FTimerDelegate::CreateLambda([this]()
+			{
+				ToggleWarningMessage(false);
+			}), 1.f, false);
+
+
+		ToggleWarningMessage(true);
+		InventoryWarningMessage->SetText(FText::FromString(fs));
+	}
+}
+
+void UInventoryWidgetBase::ToggleWarningMessage(bool bActive)
+{
+	if (InventoryWarningMessage)
+	{
+		if (bActive)
+		{
+			InventoryWarningMessage->SetVisibility(ESlateVisibility::Visible);
+		}
+		
+		else InventoryWarningMessage->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}

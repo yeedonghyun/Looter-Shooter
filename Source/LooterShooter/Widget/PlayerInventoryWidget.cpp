@@ -38,47 +38,112 @@ int UPlayerInventoryWidget::FindEmptySlot(TArray<UInventorySlot*>& SlotArray)
 
 void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
 {
-	if (WorldBagInventoryArray.Num() > 0)
+	if (WorldBagInventoryArray.Num() > 0 || WorldBoxInventoryArray.Num() > 0)
 	{
 		DeleteWorldInventory();
 	}
 
-	Bag = Cast<AItem_bag>(AimedItem);
-
-	CreateInventory(WorldBagInventoryArray, WorldInventory->Grid, Bag->Width, Bag->Height, EUnderInventoryType::WORLDBAG);
 	bWorldInventoryOpen = true;
 
-	TArray<FSlotData>& Items = Bag->savedItems;
-	for (int i = 0; i < Items.Num(); i++)
+	InventoryItem = Cast<AItem_Inventory>(AimedItem);
+	TArray<FSlotData>& Items = InventoryItem->savedItems;
+
+	switch (InventoryItem->InventoryType)
 	{
-		if (Items[i].bHaveItem)
+	case EInventoryType::BAG:
+		CreateInventory(WorldBagInventoryArray, WorldInventory->Grid, InventoryItem->Width, InventoryItem->Height, EUnderInventoryType::WORLDBAG);
+
+		for (int i = 0; i < Items.Num(); i++)
 		{
-			UInventorySlot* slot = Cast<UInventorySlot>(WorldBagInventoryArray[i]);
-			slot->SetSlotFromSlot(Items[i]);
+			if (Items[i].bHaveItem)
+			{
+				UInventorySlot* slot = Cast<UInventorySlot>(WorldBagInventoryArray[i]);
+				slot->SetSlotFromSlot(Items[i]);
+			}
 		}
+
+		WorldInventory->SetVisibility(ESlateVisibility::Visible);
+		WorldInventory->ItemSlot->SetSlotFromItem(InventoryItem->ItemData);
+
+
+		break;
+
+	case EInventoryType::BOX:
+		CreateInventory(WorldBoxInventoryArray, WorldBoxInventory->Grid, InventoryItem->Width, InventoryItem->Height, EUnderInventoryType::WORLDBOX);
+
+
+		for (int i = 0; i < Items.Num(); i++)
+		{
+			if (Items[i].bHaveItem)
+			{
+				UInventorySlot* slot = Cast<UInventorySlot>(WorldBoxInventoryArray[i]);
+				slot->SetSlotFromSlot(Items[i]);
+			}
+		}
+
+		WorldBoxInventory->SetVisibility(ESlateVisibility::Visible);
+
+		break;
+
+	default:
+		break;
 	}
 
-	WorldInventory->SetVisibility(ESlateVisibility::Visible);
-	WorldInventory->ItemSlot->SetSlotFromItem(Bag->ItemData);
+
+
+
+
 }
 
 void UPlayerInventoryWidget::DeleteWorldInventory()
 {
-	//TArray<FSlotData>& Items = Bag->savedItems;
-
-	//for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
-	//{
-	//	Items[i] = WorldBagInventoryArray[i]->SlotData;
-	//}
-
 	for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
 	{
 		WorldBagInventoryArray[i]->RemoveFromParent();
 	}
 
 	WorldBagInventoryArray.Empty();
+	WorldInventory->SetVisibility(ESlateVisibility::Collapsed);
+
+	for (int32 i = 0; i < WorldBoxInventoryArray.Num(); i++)
+	{
+		WorldBoxInventoryArray[i]->RemoveFromParent();
+	}
+
+	WorldBoxInventoryArray.Empty();
+	WorldBoxInventory->SetVisibility(ESlateVisibility::Collapsed);
+
+
+	//switch (InventoryItem->InventoryType)
+	//{
+	//case EInventoryType::BAG:
+
+	//	for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
+	//	{
+	//		WorldBagInventoryArray[i]->RemoveFromParent();
+	//	}
+
+	//	WorldBagInventoryArray.Empty();
+	//	WorldInventory->SetVisibility(ESlateVisibility::Hidden);
+
+	//	break;
+
+	//case EInventoryType::BOX:
+
+	//	for (int32 i = 0; i < WorldBoxInventoryArray.Num(); i++)
+	//	{
+	//		WorldBoxInventoryArray[i]->RemoveFromParent();
+	//	}
+
+	//	WorldBoxInventoryArray.Empty();
+	//	WorldBoxInventory->SetVisibility(ESlateVisibility::Hidden);
+	//	break;
+
+	//default:
+	//	break;
+	//}
+
 	bWorldInventoryOpen = false;
-	WorldInventory->SetVisibility(ESlateVisibility::Hidden);
 }
 
 
@@ -102,7 +167,7 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 {
 	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("SWAP")));
 
-	if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
+	if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
 		UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
 		UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
@@ -129,23 +194,47 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 		//std::swap(WorldBagInventoryArray, EquipInventoryArray);
 	}
 
-	else if (DraggingSlot->SlotType != EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
+	else if (DraggingSlot->SlotType != EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
-		//if (From->SlotData.Type == EItemType::BAG)
+		bool bHaveInventoryItem = false;
+
+		UItemInventory* inven = TargetSlot->GetTypedOuter<UItemInventory>();
+
+		if (inven->InventoryName == "Equip")
+		{
+			for (int32 i = 0; i < EquipInventoryArray.Num(); i++)
+			{
+				if (EquipInventoryArray[i]->SlotData.bHaveItem)
+				{
+					bHaveInventoryItem = true;
+					break;
+				}
+			}
+		}
+
+		if (bHaveInventoryItem)
+		{
+			if (InventoryWarningMessage)
+			{
+				ShowWarningMessage("Have Item in Bag");
+			}
+
+		}
+
+		else
 		{
 			UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
 			UVerticalBox* ToGrid = ToInventory->Grid;
 			TArray<UWidget*> ToChildren = ToGrid->GetAllChildren();
 			ToGrid->ClearChildren();
 			SwapSlotData(DraggingSlot, TargetSlot);
-
-
 		}
+
 	}
 
-	else if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType != EItemType::BAG)
+	else if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType != EItemType::INVENTORY)
 	{
-		if (TargetSlot->SlotData.Type == EItemType::BAG)
+		if (TargetSlot->SlotData.Type == EItemType::INVENTORY)
 		{
 			UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
 			UVerticalBox* FromGrid = FromInventory->Grid;
@@ -170,6 +259,9 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 	else
 	{
 		bool bUpdateWorldBagData = false;
+		bool bUpdateWorldBoxData = false;
+
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("SWAPDATA")));
 
 		SwapSlotData(DraggingSlot, TargetSlot);
 
@@ -185,18 +277,38 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 				bUpdateWorldBagData = true;
 			}
 
+			if (DraggingSlot->UnderInventoryType == EUnderInventoryType::WORLDBOX)
+			{
+				bUpdateWorldBoxData = true;
+			}
+
 			if (TargetSlot->UnderInventoryType == EUnderInventoryType::WORLDBAG)
 			{
 				bUpdateWorldBagData = true;
 			}
 
+			if (TargetSlot->UnderInventoryType == EUnderInventoryType::WORLDBOX)
+			{
+				bUpdateWorldBoxData = true;
+			}
+
 			if (bUpdateWorldBagData)
 			{
-				TArray<FSlotData>& Items = Bag->savedItems;
+				TArray<FSlotData>& Items = InventoryItem->savedItems;
 
 				for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
 				{
 					Items[i] = WorldBagInventoryArray[i]->SlotData;
+				}
+			}
+
+			if (bUpdateWorldBoxData)
+			{
+				TArray<FSlotData>& Items = InventoryItem->savedItems;
+
+				for (int32 i = 0; i < WorldBoxInventoryArray.Num(); i++)
+				{
+					Items[i] = WorldBoxInventoryArray[i]->SlotData;
 				}
 			}
 
@@ -233,3 +345,4 @@ void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor
 	SetRenderOpacity(UIOpacity);
 	SetVisibility(Visible);
 }
+

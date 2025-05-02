@@ -31,7 +31,7 @@ void UStorageUserWidget::OnReturnMainButtonClicked()
 
 void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
-	if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
+	if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
 		UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
 		UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
@@ -59,7 +59,7 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 
 	}
 
-	else if (DraggingSlot->SlotType != EItemType::BAG && TargetSlot->SlotType == EItemType::BAG)
+	else if (DraggingSlot->SlotType != EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
 		//if (From->SlotData.Type == EItemType::BAG)
 		{
@@ -73,9 +73,9 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 		}
 	}
 
-	else if (DraggingSlot->SlotType == EItemType::BAG && TargetSlot->SlotType != EItemType::BAG)
+	else if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType != EItemType::INVENTORY)
 	{
-		if (TargetSlot->SlotData.Type == EItemType::BAG)
+		if (TargetSlot->SlotData.Type == EItemType::INVENTORY)
 		{
 			UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
 			UVerticalBox* FromGrid = FromInventory->Grid;

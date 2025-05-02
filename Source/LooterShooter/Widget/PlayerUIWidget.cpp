@@ -18,6 +18,7 @@ void UPlayerUIWidget::NativeConstruct()
     HideUsingItemTimer();
 
     ToggleEscapeCanvas(false);
+    ToggleInfoUI(false);
 }
 
 void UPlayerUIWidget::HideCrosshairOnAim()
@@ -136,3 +137,27 @@ void UPlayerUIWidget::UpdateEscapeTimer(float Time)
 
 }
 
+void UPlayerUIWidget::ToggleInfoUI(bool isUse)
+{
+    if (isUse)
+    {
+        InfoUI->SetVisibility(ESlateVisibility::Visible);
+    }
+
+    else
+    {
+        InfoUI->SetVisibility(ESlateVisibility::Hidden);
+    }
+}
+
+void UPlayerUIWidget::UpdateInfoUI(FString name, bool bCanPick)
+{
+    FString Description = TEXT("F");
+    FString Description2 = TEXT("Pick up item");
+
+    FString CombinedText = FString::Printf(TEXT
+("%s\n\
+[%s] %s"), *name, *Description, *Description2);
+    InfoUI->SetText(FText::FromString(CombinedText));
+   
+}

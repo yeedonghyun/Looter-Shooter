@@ -14,7 +14,7 @@ enum class EItemType : uint8
 	ARMOR UMETA(DisplayName = "ARMOR"),
 	AMMO UMETA(DisplayName = "Ammo"),
 	HEALING UMETA(DisplayName = "Healing"),
-	BAG UMETA(DisplayName = "Bag"),
+	INVENTORY UMETA(DisplayName = "INVENTORY"),
 	STUFF UMETA(DisplayName = "Stuff")
 };
 
