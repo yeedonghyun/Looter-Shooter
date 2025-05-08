@@ -46,9 +46,6 @@ void AEscapePoint::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 void AEscapePoint::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OverlayEnd")));
-	//UE_LOG(LogTemp, Warning, TEXT("Overlap End with: %s"), *OtherActor->GetName());
-
 	if (OtherActor && OtherActor != this && OtherComp)
 	{
 		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(OtherActor);

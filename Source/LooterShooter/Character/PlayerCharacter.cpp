@@ -34,6 +34,7 @@ APlayerCharacter::APlayerCharacter() {
     EscapeDelay = 1.0f;
 
 	GunEndPoint = FVector::ZeroVector;
+    TargetOffset = FVector::ZeroVector;
 
     IMC = LoadObject<UInputMappingContext>(nullptr, 
         TEXT("/Script/EnhancedInput.InputMappingContext'/Game/Data/IMC_FPS.IMC_FPS'")); 
@@ -76,6 +77,12 @@ APlayerCharacter::APlayerCharacter() {
 
     InventoryAction = LoadObject<UInputAction>(nullptr,
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_Inventory.IA_Inventory'"));
+
+	leftTiltAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_leftTilt.IA_leftTilt'"));
+
+    RightAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_RightTilt.IA_RightTilt'"));
 
     static ConstructorHelpers::FClassFinder<AActor> WeaponBP(TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Gun/BP_Weapon1.BP_Weapon1_C'"));
     if (WeaponBP.Succeeded())
@@ -148,6 +155,25 @@ void APlayerCharacter::BeginPlay()
         }
     }
 
+    if (TSubclassOf<UUserWidget> FadeInAndOutClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_FadeInAndOutWidget.BP_FadeInAndOutWidget_C'")))
+    {
+        FadeInAndOut = CreateWidget<UFadeInAndOutWidget>(GetWorld(), FadeInAndOutClass);
+		if (FadeInAndOut)
+		{
+			FadeInAndOut->AddToViewport();
+			FadeInAndOut->PlayFadeOut();
+		}
+    }
+
+    if (TSubclassOf<UUserWidget> HitAndHealIndicatorUIClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_HitAndHealIndicatorWidget.BP_HitAndHealIndicatorWidget_C'")))
+    {
+        HitAndHealIndicatorUI = CreateWidget<UHitAndHealIndicatorWidget>(GetWorld(), HitAndHealIndicatorUIClass);
+        if (HitAndHealIndicatorUI)
+        {
+            HitAndHealIndicatorUI->AddToViewport();
+        }
+    }
+
     TArray<UActorComponent*> Components;
     GetComponents(Components);
 
@@ -156,6 +182,8 @@ void APlayerCharacter::BeginPlay()
         if (Component && Component->ComponentHasTag(TEXT("SkeletalMeshComponent")))
         {
             SkeletalMeshComponent = Cast<USkeletalMeshComponent>(Component);
+            BaseRelLocation = SkeletalMeshComponent->GetRelativeLocation();
+            BaseRelRotation = SkeletalMeshComponent->GetRelativeRotation();
             break;
         }
     }
@@ -166,13 +194,13 @@ void APlayerCharacter::BeginPlay()
         SpawnParams.Owner = this;
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-        FVector SpawnLocation = FVector::ZeroVector;
-        FRotator SpawnRotation = FRotator::ZeroRotator;
+        FVector Location = FVector::ZeroVector;
+        FRotator Rotation = FRotator::ZeroRotator;
 
         AActor* SpawnedWeapon = GetWorld()->SpawnActor<AActor>(
            WeaponClass,
-            SpawnLocation,
-            SpawnRotation,
+            Location,
+            Rotation,
             SpawnParams
         );
 
@@ -241,6 +269,39 @@ void APlayerCharacter::Tick(float DeltaTime)
     {
         UpdateEscapeDuration(DeltaTime);
     }
+
+    if (bRun)
+    {
+        FVector Velocity = GetVelocity();
+        FVector Forward = GetActorForwardVector();
+        FVector MovementDirection = Velocity.GetSafeNormal2D();
+
+        float Angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(Forward, MovementDirection)));
+
+        if (Angle > 50.0f)
+        {
+            UnRun(FInputActionValue());
+        }
+    }
+
+    FRotator CurrRelRot = SkeletalMeshComponent->GetRelativeRotation();
+    CurrRelRot.Pitch = FMath::FInterpTo(
+        CurrRelRot.Pitch,
+        BaseRelRotation.Pitch + TargetRoll,
+        DeltaTime,
+        TiltInterpSpeed
+    );
+    SkeletalMeshComponent->SetRelativeRotation(CurrRelRot);
+
+    FVector CurrRelLoc = SkeletalMeshComponent->GetRelativeLocation();
+    FVector DesiredRelLoc = BaseRelLocation + TargetOffset;
+    FVector NewRelLoc = FMath::VInterpTo(
+        CurrRelLoc,
+        DesiredRelLoc,
+        DeltaTime,
+        TiltInterpSpeed
+    );
+    SkeletalMeshComponent->SetRelativeLocation(NewRelLoc);
 }
 
 void APlayerCharacter::CheckObjectCloseAhead()
@@ -371,6 +432,18 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
         MethodPointer = &APlayerCharacter::ToggleInventory;
         EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::LeftTilt;
+        EnhancedInputComponent->BindAction(leftTiltAction, ETriggerEvent::Triggered, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::UnLeftTilt;
+        EnhancedInputComponent->BindAction(leftTiltAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::RightTilt;
+        EnhancedInputComponent->BindAction(RightAction, ETriggerEvent::Triggered, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::UnRightTilt;
+        EnhancedInputComponent->BindAction(RightAction, ETriggerEvent::Completed, this, MethodPointer);
     }
 }
 
@@ -452,18 +525,19 @@ void APlayerCharacter::ResetReload()
 
 void APlayerCharacter::Run(const FInputActionValue& InputValue)
 {
-    if (Tired) {
-        return;
-    }
-
-    if (bReload || bAiming || bCrouch || bOpenInventory || curState == PlayerState::IDLE) {
+    if (Tired || bReload || bAiming || bCrouch || bOpenInventory || curState == PlayerState::IDLE)
+    {
         return;
     }
 
     FVector Velocity = GetVelocity();
     float Speed2D = FVector(Velocity.X, Velocity.Y, 0.0f).Size();
 
-    if (Speed2D > 0.1f)
+    FVector Forward = GetActorForwardVector();
+    FVector MovementDirection = Velocity.GetSafeNormal2D(); 
+    float DotProduct = FVector::DotProduct(Forward, MovementDirection);
+
+    if (Speed2D > 0.1f && DotProduct > 0.5f)
     {
         curState = PlayerState::RUN;
         bRun = true;
@@ -494,25 +568,30 @@ void APlayerCharacter::UnRun(const FInputActionValue& InputValue)
 
 void APlayerCharacter::ApplyDamage(int Damage)
 {
-	if (Armor > 0) {
-		Armor -= Damage;
-        Damage = 0;
+    HitAndHealIndicatorUI->PlayHit();
 
-		if (Armor <= 0) {
-			Armor = 0;
-		}
-	}
+    if (Armor > 0)
+    {
+        const int32 ArmorAbsorb = FMath::Min(Armor, Damage);
+        Armor -= ArmorAbsorb;
+        Damage -= ArmorAbsorb;
+    }
 
-	Health -= Damage;
+    if (Damage > 0)
+    {
+        Health -= Damage;
 
-	if (Health <= 0)
-	{
-        UGameplayStatics::OpenLevel(this, FName("Main"));
-	}
+        if (Health <= 0)
+        {
+            UGameplayStatics::OpenLevel(this, TEXT("Main"));
+        }
+    }
 
-	if (PlayerUI) {
-		PlayerUI->SetHealth(Health / MaxHealth);
-	}
+    if (PlayerUI)
+    {
+        PlayerUI->SetHealth(Health / MaxHealth);
+        PlayerUI->SetArmor(Armor / MaxArmor);
+    }
 }
 
 void APlayerCharacter::RunStart(float Output)
@@ -658,6 +737,46 @@ void APlayerCharacter::CreateItem(const FInputActionValue& InputValue)
     //}
 }
 
+void APlayerCharacter::LeftTilt(const FInputActionValue& InputValue)
+{
+	if (bIsTilting || bRun)
+		return;
+
+	bIsTilting = true;
+    TargetRoll = -15.0f;
+    TargetOffset = FVector(0.0f, -10.0f, 0.0f);
+}
+
+void APlayerCharacter::UnLeftTilt(const FInputActionValue& InputValue)
+{
+    if (!bIsTilting)
+        return;
+
+	bIsTilting = false;
+    TargetRoll = 0.0f;
+    TargetOffset = FVector::ZeroVector;
+}
+
+void APlayerCharacter::RightTilt(const FInputActionValue& InputValue)
+{
+    if (bIsTilting || bRun)
+        return;
+
+	bIsTilting = true;
+    TargetRoll = 15.0f;
+    TargetOffset = FVector(0.0f, 10.0f, 0.0f);
+}
+
+void APlayerCharacter::UnRightTilt(const FInputActionValue& InputValue)
+{
+    if (!bIsTilting)
+        return;
+
+	bIsTilting = false;
+    TargetRoll = 0.0f;
+    TargetOffset = FVector::ZeroVector;
+}
+
 void APlayerCharacter::CrouchStart(float Output)
 {
     GetCapsuleComponent()->SetCapsuleHalfHeight(Output);
@@ -681,6 +800,7 @@ void APlayerCharacter::ToggleInventory(const FInputActionValue& InputValue)
         }
     }
 }
+
 
 void APlayerCharacter::StaminaControl()
 {
@@ -790,12 +910,14 @@ void APlayerCharacter::UseItem()
 
         Health = (Health + UsingItemData.Value > MaxHealth) ? MaxHealth : Health + UsingItemData.Value;
         PlayerUI->SetHealth(Health / MaxHealth);
+        HitAndHealIndicatorUI->PlayHealHP();
         break;
 
     case EItemType::ARMOR:
 
         Armor = (Armor + UsingItemData.Value > MaxArmor) ? MaxArmor : Armor + UsingItemData.Value;
         PlayerUI->SetArmor(Armor / MaxArmor);
+        HitAndHealIndicatorUI->PlayHealArmor();
         break;
     }
 
@@ -836,8 +958,8 @@ void APlayerCharacter::UpdateEscapeDuration(float duration)
     if (EscapeDuration >= 3.f)
     {
         InventoryUI->SaveInventories();
-
-        UGameplayStatics::OpenLevel(this, FName("Main"));
+        FadeInAndOut->PlayFadeIn();
+        GetWorldTimerManager().SetTimer(LevelTimerHandle, this, &APlayerCharacter::OpenMainLevel, 3.f, false);
 
 
         //if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
@@ -858,4 +980,9 @@ void APlayerCharacter::UpdateEscapeDuration(float duration)
 
 
 
+}
+
+void APlayerCharacter::OpenMainLevel()
+{
+    UGameplayStatics::OpenLevel(this, FName("Main"));
 }

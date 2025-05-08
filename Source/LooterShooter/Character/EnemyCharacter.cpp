@@ -2,7 +2,11 @@
 #include "AIController.h"
 #include "NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "PhysicsEngine/BodyInstance.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
@@ -18,6 +22,7 @@ AEnemyCharacter::AEnemyCharacter()
     bShoot = false;
     bRecentDetectPlayer = false;
     Health = 100;
+	bIsDead = false;
 
     CurrentState = EEnemyState::Idle;
 
@@ -82,7 +87,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    if (IsDetectPlayer())
+    if (!bIsDead && IsDetectPlayer())
     {
         AAIController* AIController = Cast<AAIController>(GetController());
         if (AIController)
@@ -108,8 +113,6 @@ void AEnemyCharacter::UpdateWalkSpeed(float NewWalkSpeed)
 bool AEnemyCharacter::IsDetectPlayer()
 {
     if (!TargetPlayer) {
-        bDetectPlayer = false;
-        LostPlayer = true;
         return false;
     }
 
@@ -155,7 +158,6 @@ bool AEnemyCharacter::IsDetectPlayer()
     }
 
     bDetectPlayer = true;
-    LostPlayer = false; 
     LastKnownPlayerLocation = PlayerLocation;
     return true;
 }
@@ -278,13 +280,57 @@ void AEnemyCharacter::ResetShoot()
     bShoot = false;
 }
 
-void AEnemyCharacter::ApplyDamage(int Damage)
+void AEnemyCharacter::ApplyDamage(int DamageAmount)
 {
-	Health -= Damage;
+    Health -= DamageAmount;
+    if (Health > 0 || bIsDead) return;
 
-	if (Health <= 0)
-	{
-        Weapon->Destroy();
-		Destroy();
-	}
+    bIsDead = true;
+    bDetectPlayer = false;
+
+    if (Weapon) Weapon->Destroy();
+
+    UCapsuleComponent* Capsule = GetCapsuleComponent();
+    Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    if (SkeletalMeshComponent)
+    {
+        SkeletalMeshComponent->bBlendPhysics = true;
+        SkeletalMeshComponent->bPauseAnims = true;
+
+        SkeletalMeshComponent->SetSimulatePhysics(true);
+        SkeletalMeshComponent->SetAllBodiesSimulatePhysics(true);
+        SkeletalMeshComponent->WakeAllRigidBodies();
+
+        SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+        SkeletalMeshComponent->SetCollisionObjectType(ECC_PhysicsBody);
+        SkeletalMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+        SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+    }
+
+    if (AAIController* AIC = Cast<AAIController>(GetController()))
+    {
+        if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+        {
+            BB->SetValueAsBool(TEXT("bIsDead"), true);
+        }
+        AIC->UnPossess();
+    }
+
+    GetWorldTimerManager().SetTimer(FreezeStateTimerHandle, this,
+        &AEnemyCharacter::FreezeRagdoll, 2.0f, false);
+}
+
+void AEnemyCharacter::FreezeRagdoll()
+{
+    if (!SkeletalMeshComponent) return;
+
+    SkeletalMeshComponent->SetAllPhysicsLinearVelocity(FVector::ZeroVector, false);
+    SkeletalMeshComponent->SetAllPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false);
+
+    SkeletalMeshComponent->SetSimulatePhysics(false);
+
+    SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+    SkeletalMeshComponent->bPauseAnims = true;
+    SkeletalMeshComponent->SetComponentTickEnabled(false);
 }

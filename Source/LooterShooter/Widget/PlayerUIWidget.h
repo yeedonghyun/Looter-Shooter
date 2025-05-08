@@ -91,4 +91,13 @@ public:
 
 	//FTimerHandle UpdateInfoUIHandle;
 
+private:
+	void UpdateHealth();
+	void UpdateArmor();
+
+	FTimerHandle HealthUpdateTimerHandle;
+	FTimerHandle ArmorUpdateTimerHandle;
+
+	float HealthTargetValue;
+	float ArmorTargetValue;
 };

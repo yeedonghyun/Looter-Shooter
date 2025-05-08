@@ -14,6 +14,8 @@
 #include "../Gun/Weapon.h"
 #include "../Item/Item_banage.h"
 #include "../Widget/PlayerInventoryWidget.h"
+#include "../Widget/FadeInAndOutWidget.h"
+#include "../Widget/HitAndHealIndicatorWidget.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -59,6 +61,12 @@ protected:
 	void PickUpItem(const FInputActionValue& InputValue);
 	void CreateItem(const FInputActionValue& InputValue);
 
+	void LeftTilt(const FInputActionValue& InputValue);
+	void UnLeftTilt(const FInputActionValue& InputValue);
+
+	void RightTilt(const FInputActionValue& InputValue);
+	void UnRightTilt(const FInputActionValue& InputValue);
+
 	void CheckObjectCloseAhead();
 	void CheckWall(FVector Start, FRotator Rotation, int ViewDis);
 	void CheckItem(FVector Start, FRotator Rotation, int ViewDis);
@@ -86,12 +94,16 @@ protected:
 	UInputAction* PickUpItemAction;
 	UInputAction* CreateItemAction;
 	UInputAction* InventoryAction;
+	UInputAction* leftTiltAction;
+	UInputAction* RightAction;
 
 	APlayerCameraManager* Camera;
 	APlayerController* PlayerController;
 	USceneComponent* PivotComponent;
 
 	UPlayerUIWidget* PlayerUI;
+	UFadeInAndOutWidget* FadeInAndOut;
+	UHitAndHealIndicatorWidget* HitAndHealIndicatorUI;
 	FVector GunEndPoint;
 
 	UPlayerInventoryWidget* InventoryUI;
@@ -101,11 +113,9 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-
 	bool IsEscaping();
 	void StartEscape(float EscapeTime);
 	void StopEscape();
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* IMC;
@@ -130,6 +140,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bUsingItem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bIsTilting;
 
 	USkeletalMeshComponent* SkeletalMeshComponent;
 
@@ -238,6 +251,9 @@ private:
 
 	FTimerHandle HandStaminaTimerHandle;
 	FTimerHandle StaminaTimerHandle;
+	FTimerHandle LevelTimerHandle;
+
+	void OpenMainLevel();
 
 	UFUNCTION()
 	void StaminaControl();
@@ -253,4 +269,12 @@ private:
 	float RecoilRecoverySpeed = 5.0f;
 	void AddRecoil();
 
+	float TargetRoll = 0.0f;
+	FVector TargetOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category = "Tilt")
+	float TiltInterpSpeed = 5.0f;
+
+	FVector BaseRelLocation;
+	FRotator BaseRelRotation;
 };

@@ -53,7 +53,7 @@ public:
 	void UpdateWalkSpeed(float NewWalkSpeed);
 
 	UFUNCTION(BlueprintCallable)
-	void ApplyDamage(int Damage);
+	void ApplyDamage(int DamageAmount);
 
 	UPROPERTY(BlueprintReadWrite)
 	int Health;
@@ -108,14 +108,17 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	AActor* GetWeapon() { return Weapon; }
 	
-
 	void CheckRecentlyDetectPlayer();
+	void FreezeRagdoll();
 
 	bool bDetectPlayer;
 	bool bShoot;
 	bool LostPlayer;
 	bool bRecentDetectPlayer;
 
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsDead;
+	FTimerHandle FreezeStateTimerHandle;
 	FTimerHandle ShootResetTimerHandle;
 	FTimerHandle DetectPlayerTimerHandle;
 

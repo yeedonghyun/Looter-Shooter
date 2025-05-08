@@ -1,4 +1,5 @@
 #include "PlayerUIWidget.h"
+#include "TimerManager.h"
 
 void UPlayerUIWidget::NativeConstruct()
 {
@@ -60,15 +61,58 @@ void UPlayerUIWidget::SetHandStaminaColor(FLinearColor color)
     UHandStamina->SetFillColorAndOpacity(color);
 }
 
-
-void UPlayerUIWidget::SetHealth(float value)
+void UPlayerUIWidget::SetHealth(float TargetValue)
 {
-    UHealth->SetPercent(value);
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().SetTimer(HealthUpdateTimerHandle, this, &UPlayerUIWidget::UpdateHealth, 0.02f, true);
+
+        HealthTargetValue = TargetValue;
+    }
 }
 
-void UPlayerUIWidget::SetArmor(float value)
+void UPlayerUIWidget::SetArmor(float TargetValue)
 {
-    UArmor->SetPercent(value);
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().SetTimer(ArmorUpdateTimerHandle, this, &UPlayerUIWidget::UpdateArmor, 0.02f, true);
+
+        ArmorTargetValue = TargetValue;
+    }
+}
+
+void UPlayerUIWidget::UpdateHealth()
+{
+    float CurrentValue = UHealth->Percent;
+    float Step = 0.01f; 
+
+    if (FMath::Abs(CurrentValue - HealthTargetValue) <= Step)
+    {
+        UHealth->SetPercent(HealthTargetValue);
+        GetWorld()->GetTimerManager().ClearTimer(HealthUpdateTimerHandle);
+    }
+    else
+    {
+        float NewValue = FMath::FInterpTo(CurrentValue, HealthTargetValue, GetWorld()->GetDeltaSeconds(), 5.0f);
+        UHealth->SetPercent(NewValue);
+    }
+}
+
+void UPlayerUIWidget::UpdateArmor()
+{
+    float CurrentValue = UArmor->Percent;
+    float Step = 0.01f; 
+
+    if (FMath::Abs(CurrentValue - ArmorTargetValue) <= Step)
+    {
+        UArmor->SetPercent(ArmorTargetValue);
+        GetWorld()->GetTimerManager().ClearTimer(ArmorUpdateTimerHandle);
+    }
+    else
+    {
+        float NewValue = FMath::FInterpTo(CurrentValue, ArmorTargetValue, GetWorld()->GetDeltaSeconds(), 5.0f);
+        UArmor->SetPercent(NewValue);
+    }
 }
 
 
