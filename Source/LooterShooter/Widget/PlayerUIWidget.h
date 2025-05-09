@@ -8,6 +8,7 @@
 #include "Math/Color.h"
 #include "Components/EditableTextBox.h"
 #include <Components/CanvasPanel.h>
+#include "LooterShooter/Item/ItemData.h"
 
 #include "PlayerUIWidget.generated.h"
 
@@ -53,6 +54,7 @@ public:
 	void ShowCrosshairOnAimEnd();
 
 	void SetLeftAmmoText(int CurAmmo);
+	void SetMagazineText(int CurAmmo);
 
 	void SetStamina(float Stamina);
 	void SetHandStamina(float Stamina);
@@ -75,7 +77,7 @@ public:
 	void ToggleEscapeCanvas(bool isUse);
 
 	void ToggleInfoUI(bool isUse);
-	void UpdateInfoUI(FString name, bool bCanPick);
+	void UpdateInfoUI(FItemData data, bool bCanPick);
 
 
 	UPROPERTY(meta = (BindWidget))

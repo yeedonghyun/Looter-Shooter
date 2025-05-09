@@ -41,6 +41,13 @@ void UPlayerUIWidget::SetLeftAmmoText(int CurAmmo)
     LeftAmmo->SetText(FText::FromString(AmmoString));
 }
 
+void UPlayerUIWidget::SetMagazineText(int Ammo)
+{
+    FString AmmoString = FString::FromInt(Ammo);
+    //FString AmmoString = FString::FromInt(CurAmmo) + TEXT(" / ");
+    Magazine->SetText(FText::FromString(AmmoString));
+}
+
 void UPlayerUIWidget::SetStamina(float Stamina)
 {
     UStamina->SetPercent(Stamina);
@@ -194,14 +201,41 @@ void UPlayerUIWidget::ToggleInfoUI(bool isUse)
     }
 }
 
-void UPlayerUIWidget::UpdateInfoUI(FString name, bool bCanPick)
+void UPlayerUIWidget::UpdateInfoUI(FItemData data, bool bCanPick)
 {
-    FString Description = TEXT("F");
-    FString Description2 = TEXT("Pick up item");
+    FString Description = "";
+    FString Description2 = "";
+
+    if (bCanPick)
+    {
+        Description = TEXT("[F] Pick up item");
+    }
+
+    if (Description == "")
+    {
+        if (data.Type == EItemType::INVENTORY)
+        {
+            Description = TEXT("[I] Open item inventory");
+        }
+    }
+
+    else
+    {
+        if (data.Type == EItemType::INVENTORY)
+        {
+            Description2 = TEXT("[I] Open item inventory");
+        }
+    }
+
+
 
     FString CombinedText = FString::Printf(TEXT
-("%s\n\
-[%s] %s"), *name, *Description, *Description2);
+    ("%s\n\
+%s\n\
+%s"), *data.Name, *Description, *Description2);
     InfoUI->SetText(FText::FromString(CombinedText));
+
+
+
    
 }

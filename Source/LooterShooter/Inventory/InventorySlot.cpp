@@ -33,7 +33,7 @@ void UInventorySlot::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		ItemUseDuration += InDeltaTime;
 
 		if (ItemUseDuration >= ItemUseDelay) { CompleteConsume(); }
-		else { ProgressBar->SetPercentage(ItemUseDuration); }
+		else { ProgressBar->SetPercentage(ItemUseDuration / ItemUseDelay); }
 	}
 }
 
@@ -67,6 +67,8 @@ void UInventorySlot::InitInventorySlot(int idx, int InventoryIdx, EItemType type
 void UInventorySlot::StartConsume()
 {
 	bUseItem = true;
+	ItemUseDuration = 0.f;
+	ItemUseDelay = SlotData.UseDelay;
 
 	if (TSubclassOf<UCircleProgressBar> Progress = LoadClass<UCircleProgressBar>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Inventory/BP_CircleProgressBar.BP_CircleProgressBar_C'")))
 	{
@@ -106,6 +108,15 @@ void UInventorySlot::SetSlotFromItem(const FItemData& data)
 	SlotData.SetSlotFromItemData(data);
 	GetItemImage(SlotData.Name);
 	ToggleSlot();
+
+	if (SlotData.Type == EItemType::AMMO)
+	{
+		if (Amount)
+		{
+			FString fs = FString::FromInt(SlotData.Amount);
+			Amount->SetText(FText::FromString(fs));
+		}
+	}
 }
 
 void UInventorySlot::SetSlotFromSlot(const FSlotData& data)
@@ -113,6 +124,17 @@ void UInventorySlot::SetSlotFromSlot(const FSlotData& data)
 	SlotData = data;
 	GetItemImage(SlotData.Name);
 	ToggleSlot();
+
+	if (SlotData.Type == EItemType::AMMO)
+	{
+		if (Amount)
+		{
+			FString fs = FString::FromInt(SlotData.Amount);
+			Amount->SetText(FText::FromString(fs));
+		}
+	}
+
+
 }
 
 void UInventorySlot::ToggleSlot()

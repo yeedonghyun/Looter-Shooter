@@ -13,7 +13,10 @@ APlayerCharacter::APlayerCharacter() {
     bSemiFire = false;
     Sensitivity = 0.4;
     CurrentAmmo = 30;
-    MagazineAmmo = CurrentAmmo;
+    MagazineAmmo = 30;
+
+    MaxAmmo = 60;
+
     AimedItem = nullptr;
     curHandStamina = 1.f;
     curStamina = 1.f;
@@ -149,9 +152,11 @@ void APlayerCharacter::BeginPlay()
             PlayerUI->SetHandStamina(curHandStamina);
             PlayerUI->SetStamina(curStamina);
 
-
             PlayerUI->SetHealth(Health / MaxHealth);
             PlayerUI->SetArmor(Armor / MaxArmor);
+
+            PlayerUI->SetLeftAmmoText(CurrentAmmo);
+            PlayerUI->SetMagazineText(MaxAmmo);
         }
     }
 
@@ -345,8 +350,14 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
             {
                 PlayerUI->ShowCrosshairOnAimEnd();
                 PlayerUI->ToggleInfoUI(true);
-                PlayerUI->UpdateInfoUI(AimedItem->ItemData.Name, true);
-                //	InventoryItem = Cast<AItem_Inventory>(AimedItem);
+                PlayerUI->UpdateInfoUI(AimedItem->ItemData, true);
+                if (AItem_Inventory* inventory = Cast<AItem_Inventory>(AimedItem))
+                {
+                    if (inventory->InventoryType == EInventoryType::BOX)
+                    {
+                        PlayerUI->UpdateInfoUI(AimedItem->ItemData, false);
+                    }
+                }
             }
         }
         else
@@ -368,7 +379,6 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
             PlayerUI->ToggleInfoUI(false);
         }
 
-        // 인벤토리 백 업데이트
         if (InventoryUI)
         {
             if (InventoryUI->bWorldInventoryOpen)
@@ -474,6 +484,10 @@ void APlayerCharacter::UnMove(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Look(const FInputActionValue& InputValue)
 {
+    if (bOpenInventory) {
+        return;
+    }
+
     FVector2D LookVector = InputValue.Get<FVector2D>();
 
     AddControllerYawInput(LookVector.X * Sensitivity);
@@ -516,8 +530,14 @@ void APlayerCharacter::Reload(const FInputActionValue& InputValue)
 void APlayerCharacter::ResetReload()
 {
     if (PlayerUI) {
-        CurrentAmmo = MagazineAmmo;
+
+        if (MaxAmmo - MagazineAmmo > 0)
+        {
+            CurrentAmmo = MagazineAmmo;
+            MaxAmmo -= MagazineAmmo;
+        }
         PlayerUI->SetLeftAmmoText(CurrentAmmo);
+        PlayerUI->SetMagazineText(MaxAmmo);
     }
 
     bReload = false;
@@ -728,13 +748,6 @@ void APlayerCharacter::CreateItem(const FInputActionValue& InputValue)
         AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
     }
 
-    //if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/Heal/BP_Bagg.BP_Bagg_C'"))) {
-    //    AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
-    //}
-
-    //if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/Heal/BP_Item_banage.BP_Item_banage_C'"))) {
-    //    AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
-    //}
 }
 
 void APlayerCharacter::LeftTilt(const FInputActionValue& InputValue)
@@ -875,9 +888,12 @@ void APlayerCharacter::LoadInventoryClass()
 }
 
 
+
 void APlayerCharacter::CreateInventoryItem(FString name)
 {
-    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) {
+    FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *name, *name);
+
+    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, *FullPath)) {
         AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
     }
 }
@@ -888,7 +904,7 @@ void APlayerCharacter::UpdateItemUseDuration(float duration)
     ItemUseDuration += duration;
 
     if (ItemUseDuration >= ItemUseDelay) { UseItem(); }
-    else { PlayerUI->UpdateItemUsingTime(ItemUseDuration); }
+    else { PlayerUI->UpdateItemUsingTime(ItemUseDuration / ItemUseDelay); }
 }
 
 
@@ -896,11 +912,14 @@ void APlayerCharacter::UseItemWithDelay(FItemData data)
 {
     bUsingItem = true;
     ItemUseDuration = 0.0f;
+
+    ItemUseDelay = data.UseDelay;
     UsingItemData = data;
 
     PlayerUI->UpdateItemUsingTime(ItemUseDuration);
     PlayerUI->ShowUsingItemTimer();
 }
+
 
 void APlayerCharacter::UseItem()
 {
@@ -919,6 +938,11 @@ void APlayerCharacter::UseItem()
         PlayerUI->SetArmor(Armor / MaxArmor);
         HitAndHealIndicatorUI->PlayHealArmor();
         break;
+
+    case EItemType::AMMO:
+        MaxAmmo += UsingItemData.Amount;
+        PlayerUI->SetMagazineText(MaxAmmo);
+        break;
     }
 
     bUsingItem = false;
@@ -926,6 +950,7 @@ void APlayerCharacter::UseItem()
     PlayerUI->UpdateItemUsingTime(ItemUseDuration);
     PlayerUI->HideUsingItemTimer();
 }
+
 
 
 
@@ -960,21 +985,6 @@ void APlayerCharacter::UpdateEscapeDuration(float duration)
         InventoryUI->SaveInventories();
         FadeInAndOut->PlayFadeIn();
         GetWorldTimerManager().SetTimer(LevelTimerHandle, this, &APlayerCharacter::OpenMainLevel, 3.f, false);
-
-
-        //if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-        //{
-        //    PC->bShowMouseCursor = true;
-        //    PC->SetInputMode(FInputModeGameAndUI());
-        //}
-
-        //if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_MainMenuUserWidget.BP_MainMenuUserWidget_C'")))
-        //{
-        //    if (UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass))
-        //    {
-        //        SelectMapWidget->AddToViewport();
-        //    }
-        //}
     }
 
 

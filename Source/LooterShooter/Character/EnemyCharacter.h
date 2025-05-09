@@ -58,6 +58,8 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	int Health;
 
+	void CreateInventoryItem(FString name);
+
 protected:
 
 	UFUNCTION(BlueprintCallable)

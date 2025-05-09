@@ -14,7 +14,7 @@
 #include "Components/Button.h"
 #include "../Inventory/Inventory.h"
 #include "../Inventory/ItemInventory.h"
-
+#include "../Inventory/RightClickOption.h"
 
 #include "InventoryWidgetBase.generated.h"
 
@@ -35,13 +35,15 @@ class LOOTERSHOOTER_API UInventoryWidgetBase : public UUserWidget
 public:
 
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InventoryWidgetBase")
 	EInventoryWidgetType InventoryWidgetType;
 
 	bool bDragging;
 	bool bHaveEquipInventory;
-
+	bool bOpenRightClickOption;
+	bool bClickDetectionEnabled;
 
 	void InitWidget();
 
@@ -54,6 +56,7 @@ public:
 	void HandleSlotActionRequest(UInventorySlot* TargetSlot, ESlotActionType type, bool bActive);
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot);
 	virtual void UseItem(UInventorySlot* TargetSlot);
+	virtual void DropItem(UInventorySlot* TargetSlot);
 
 	UFUNCTION(BlueprintCallable)
 	void ShowWarningMessage(FString fs);
@@ -64,6 +67,15 @@ public:
 	void SaveInventories();
 
 	TArray<UInventorySlot*>& ReturnInventoryArray(EUnderInventoryType InventoryType);
+
+	UFUNCTION(BlueprintCallable)
+	void OnSlotActionSelected(ESlotActionType ActionType);
+
+
+	void CreateClickOption();
+
+
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
@@ -91,12 +103,29 @@ public:
 
 	UTooltip* SlotToolTip;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	//UEditableTextBox* InventoryWarningMessage;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	UTextBlock* InventoryWarningMessage;
 
+	URightClickOption* RightClickOption;
+
+
 	FTimerHandle UpdateHandle;
+
+
+	UInventorySlot* DedicateSlot;
+
+
+
+
+
+
+
+	void CheckAmmo();
+	void UpdateAmmo();
+
+	int sumAmmo;
+
+	UInventorySlot* FirstAmmoSlot;
 
 };

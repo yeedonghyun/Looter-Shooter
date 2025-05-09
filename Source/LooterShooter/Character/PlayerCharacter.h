@@ -169,6 +169,9 @@ public:
 
 	int CurrentAmmo;
 	int MagazineAmmo;
+	int MaxAmmo;
+
+
 	bool bSemiFire;
 	float Sensitivity;
 

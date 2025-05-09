@@ -51,6 +51,7 @@ public:
 
 
 	virtual void UseItem(UInventorySlot* TargetSlot) override;
+	virtual void DropItem(UInventorySlot* TargetSlot) override;
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot) override;
 
 

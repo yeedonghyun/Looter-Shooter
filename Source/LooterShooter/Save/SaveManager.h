@@ -21,7 +21,9 @@ public:
 
 	USaveManager();
 	static USaveManager* GetSaveInstance(const FString& SaveSlotName);
-	static void SaveData(const FString& SaveSlotName);
+	//static void SaveData(const FString& SaveSlotName);
+
+	static void CreateNewSaveData(const FString& SaveSlotName);
 
 	static void SaveDataSet(const FString& SaveSlotName, USaveManager* SaveGameInstance);
 

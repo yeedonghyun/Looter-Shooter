@@ -25,13 +25,18 @@ struct FItemData : public FTableRowBase
 	GENERATED_BODY()
 
 public:
+
 	FItemData()
 	{
 		// 초기값 설정
-		Name = TEXT(""); 
-		Value = 0;      
-		Weight = 0;       
-		Type = EItemType::STUFF; 
+		Name = TEXT("");
+		Value = 0;
+		Weight = 0;
+		Type = EItemType::STUFF;
+		Cost = 0;
+		LootDelay = 0;
+		UseDelay = 0;
+		Amount = 0;
 	}
 
 	void SetItemFromSlotData(FSlotData data);
@@ -48,6 +53,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
 		EItemType Type;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
+		int32 Cost;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
+		int32 LootDelay;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
+		int32 UseDelay;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
+		int32 Amount;
 };
 
 USTRUCT(BlueprintType)

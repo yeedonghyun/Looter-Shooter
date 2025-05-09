@@ -14,7 +14,7 @@
 
 #include "LooterShooter/Item/Item_bag.h"
 #include "../Inventory/DragDropSlot.h"
-
+#include <Components/TextBlock.h>
 #include "../Inventory/CircleProgressBar.h"
 
 
@@ -23,6 +23,7 @@
 #include "Components/OverlaySlot.h"
 
 #include "InventorySlot.generated.h"
+
 
 
 //class UInventoryBase;
@@ -127,6 +128,8 @@ public:
 		FSlotData SlotData;
 
 
+	UPROPERTY(meta = (BindOptopnal))
+	UTextBlock* Amount;
 
 	int32 _idx;
 
@@ -139,22 +142,10 @@ public:
 	FSwapSlot OnSwapRequested;
 
 
-	//FOnItemUseResponse OnUseResponseDelegate;
 
-
-	//UPROPERTY(meta = (BindWidget))
 	UCircleProgressBar* ProgressBar;
 
 
-
-
-
-	//void RequestUseItem();
-	//void OnItemUseResponse(bool bSuccess);
-
-	void TryUseItem();
-
-	//void SetUseRequestDelegate(TFunction<void(UInventorySlot*, FOnSlotActionResult)> InDelegate);
 
 };
 

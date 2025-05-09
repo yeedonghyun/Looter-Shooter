@@ -97,6 +97,9 @@ void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
 
 void UPlayerInventoryWidget::DeleteWorldInventory()
 {
+
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Delete")));
+
 	for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
 	{
 		WorldBagInventoryArray[i]->RemoveFromParent();
@@ -105,6 +108,8 @@ void UPlayerInventoryWidget::DeleteWorldInventory()
 	WorldBagInventoryArray.Empty();
 	WorldInventory->SetVisibility(ESlateVisibility::Collapsed);
 
+
+
 	for (int32 i = 0; i < WorldBoxInventoryArray.Num(); i++)
 	{
 		WorldBoxInventoryArray[i]->RemoveFromParent();
@@ -112,36 +117,6 @@ void UPlayerInventoryWidget::DeleteWorldInventory()
 
 	WorldBoxInventoryArray.Empty();
 	WorldBoxInventory->SetVisibility(ESlateVisibility::Collapsed);
-
-
-	//switch (InventoryItem->InventoryType)
-	//{
-	//case EInventoryType::BAG:
-
-	//	for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
-	//	{
-	//		WorldBagInventoryArray[i]->RemoveFromParent();
-	//	}
-
-	//	WorldBagInventoryArray.Empty();
-	//	WorldInventory->SetVisibility(ESlateVisibility::Hidden);
-
-	//	break;
-
-	//case EInventoryType::BOX:
-
-	//	for (int32 i = 0; i < WorldBoxInventoryArray.Num(); i++)
-	//	{
-	//		WorldBoxInventoryArray[i]->RemoveFromParent();
-	//	}
-
-	//	WorldBoxInventoryArray.Empty();
-	//	WorldBoxInventory->SetVisibility(ESlateVisibility::Hidden);
-	//	break;
-
-	//default:
-	//	break;
-	//}
 
 	bWorldInventoryOpen = false;
 }
@@ -153,11 +128,23 @@ void UPlayerInventoryWidget::UseItem(UInventorySlot* TargetSlot)
 {
 	if (!bUsingItem)
 	{
-		if (TargetSlot->SlotData.Type == EItemType::HEALING || TargetSlot->SlotData.Type == EItemType::ARMOR)
+		if (TargetSlot->SlotData.Type == EItemType::HEALING || TargetSlot->SlotData.Type == EItemType::ARMOR || TargetSlot->SlotData.Type == EItemType::AMMO)
 		{
 			TargetSlot->StartConsume();
 			OnItemUseRequested.Broadcast(TargetSlot->SlotData);
 		}
+	}
+}
+
+
+void UPlayerInventoryWidget::DropItem(UInventorySlot* TargetSlot)
+{
+	if (!bUsingItem)
+	{
+		OnDropRequested.Broadcast(TargetSlot->SlotData.Name);
+
+		TargetSlot->SlotData.bHaveItem = false;
+		TargetSlot->ToggleSlot();
 	}
 }
 
@@ -228,6 +215,11 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 			TArray<UWidget*> ToChildren = ToGrid->GetAllChildren();
 			ToGrid->ClearChildren();
 			SwapSlotData(DraggingSlot, TargetSlot);
+
+			if (ToInventory->ItemSlot->UnderInventoryType == EUnderInventoryType::WORLDBAG)
+			{
+				DeleteWorldInventory();
+			}
 		}
 
 	}
@@ -345,4 +337,3 @@ void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor
 	SetRenderOpacity(UIOpacity);
 	SetVisibility(Visible);
 }
-

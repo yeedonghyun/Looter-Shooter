@@ -8,6 +8,9 @@ void UInventoryWidgetBase::NativeConstruct()
 	Super::NativeConstruct();
 	bDragging = false;
 	bHaveEquipInventory = false;
+	bOpenRightClickOption = false;
+	bClickDetectionEnabled = false;
+	sumAmmo = 0;
 
 	InitWidget();
 
@@ -27,10 +30,20 @@ void UInventoryWidgetBase::NativeConstruct()
 		this->SaveButton->OnClicked.AddDynamic(this, &UInventoryWidgetBase::SaveInventories);
 	}
 
-
 	ToggleWarningMessage(false);
 }
 
+
+void UInventoryWidgetBase::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// 첫 프레임 이후 클릭 감지 활성화
+	if (bOpenRightClickOption)
+	{
+		bClickDetectionEnabled = true;
+	}
+}
 
 void UInventoryWidgetBase::InitWidget()
 {
@@ -81,12 +94,14 @@ void UInventoryWidgetBase::InitWidget()
 
 	if (EquipInventory)
 	{
+		EquipInventory->ItemSlot->UnderInventoryType = EUnderInventoryType::EQUIP;
 		EquipInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UInventoryWidgetBase::HandleSwapRequest);
 		EquipInventory->ItemSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 	}
 
 	if (WorldInventory)
 	{
+		WorldInventory->ItemSlot->UnderInventoryType = EUnderInventoryType::WORLDBAG;
 		WorldInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UInventoryWidgetBase::HandleSwapRequest);
 		WorldInventory->SetVisibility(ESlateVisibility::Collapsed);
 	}
@@ -163,13 +178,38 @@ void UInventoryWidgetBase::SwapSlotData(UInventorySlot*& DraggingSlot, UInventor
 
 void UInventoryWidgetBase::HandleSlotActionRequest(UInventorySlot* TargetSlot, ESlotActionType type, bool bActive)
 {
+
+
 	switch (type)
 	{
 	case ESlotActionType::DROP:
+
+		if (bOpenRightClickOption)
+		{
+			bOpenRightClickOption = false;
+			bClickDetectionEnabled = false;
+			RightClickOption->RemoveFromParent();
+		}
+
+		CreateClickOption();
+
+		DedicateSlot = TargetSlot;
+
 		break;
 
 	case ESlotActionType::USE:
-		UseItem(TargetSlot);
+
+		if (bOpenRightClickOption)
+		{
+			bOpenRightClickOption = false;
+			bClickDetectionEnabled = false;
+			RightClickOption->RemoveFromParent();
+		}
+
+		CreateClickOption();
+
+		DedicateSlot = TargetSlot;
+
 		break;
 
 	case ESlotActionType::CHECK:
@@ -194,6 +234,32 @@ void UInventoryWidgetBase::HandleSlotActionRequest(UInventorySlot* TargetSlot, E
 
 }
 
+void UInventoryWidgetBase::CreateClickOption()
+{
+	bOpenRightClickOption = true;
+
+	if (TSubclassOf<URightClickOption> RightClickClass = LoadClass<URightClickOption>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Inventory/BP_RightClickOption.BP_RightClickOption_C'")))
+	{
+		RightClickOption = CreateWidget<URightClickOption>(GetWorld(), RightClickClass);
+
+		if (RightClickOption)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CreateWidget")));
+
+			FVector2D curMousePosition;
+
+			if (GetWorld()->GetFirstPlayerController()->GetMousePosition(curMousePosition.X, curMousePosition.Y))
+			{
+				RightClickOption->SetPositionInViewport(curMousePosition + FVector2D(2.0f, 0.0f));
+			}
+
+			RightClickOption->AddToViewport();
+			RightClickOption->OnActionSelected.AddDynamic(this, &UInventoryWidgetBase::OnSlotActionSelected);
+		}
+	}
+
+}
+
 
 void UInventoryWidgetBase::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
@@ -204,6 +270,9 @@ void UInventoryWidgetBase::UseItem(UInventorySlot* TargetSlot)
 {
 }
 
+void UInventoryWidgetBase::DropItem(UInventorySlot* TargetSlot)
+{
+}
 
 
 void UInventoryWidgetBase::SaveInventories()
@@ -293,4 +362,101 @@ void UInventoryWidgetBase::ToggleWarningMessage(bool bActive)
 		
 		else InventoryWarningMessage->SetVisibility(ESlateVisibility::Collapsed);
 	}
+}
+
+
+void UInventoryWidgetBase::OnSlotActionSelected(ESlotActionType ActionType)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OnSlotAction")));
+
+	if (DedicateSlot)
+	{
+		switch (ActionType)
+		{
+		case ESlotActionType::USE:
+
+			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OnSlotActionSelectedUseItem")));
+
+			UseItem(DedicateSlot);
+			break;
+		case ESlotActionType::DROP:
+			DropItem(DedicateSlot);
+			break;
+		default:
+			break;
+		}
+	}
+
+	bOpenRightClickOption = false;
+	bClickDetectionEnabled = false;
+	RightClickOption->RemoveFromParent();
+}
+
+FReply UInventoryWidgetBase::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (!bClickDetectionEnabled)
+	{
+		return FReply::Unhandled(); // 아직 감지 비활성화
+	}
+
+	if (RightClickOption && !RightClickOption->IsHovered())
+	{
+		RightClickOption->RemoveFromParent();
+		bOpenRightClickOption = false;
+		bClickDetectionEnabled = false;
+	}
+
+
+	return FReply::Handled(); // 클릭 소모
+}
+
+void UInventoryWidgetBase::CheckAmmo()
+{
+	bool bFindAmmo = false;
+	sumAmmo = 0;
+
+	if (PlayerInventory)
+	{
+		for (int32 i = 0; i < PlayerInventoryArray.Num(); i++)
+		{
+			if (PlayerInventoryArray[i]->SlotData.bHaveItem)
+			{
+				if (PlayerInventoryArray[i]->SlotData.Type == EItemType::AMMO)
+				{
+					if (!bFindAmmo)
+					{
+						FirstAmmoSlot = PlayerInventoryArray[i];
+						bFindAmmo = true;
+					}
+
+					sumAmmo += PlayerInventoryArray[i]->SlotData.Amount;
+				}
+			}
+		}
+
+	}
+
+	if(bHaveEquipInventory)
+	{
+		if (EquipInventory)
+		{
+
+		}
+	}
+
+}
+
+void UInventoryWidgetBase::UpdateAmmo()
+{
+	sumAmmo -= 1;
+	FirstAmmoSlot->SlotData.Amount -= 1;
+
+	if (FirstAmmoSlot->SlotData.Amount == 0)
+	{
+		FirstAmmoSlot->SlotData.bHaveItem = false;
+		FirstAmmoSlot->ToggleSlot();
+		CheckAmmo();
+	}
+
+	//텍스트 업데이트
 }

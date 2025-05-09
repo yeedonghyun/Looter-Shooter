@@ -319,6 +319,8 @@ void AEnemyCharacter::ApplyDamage(int DamageAmount)
 
     GetWorldTimerManager().SetTimer(FreezeStateTimerHandle, this,
         &AEnemyCharacter::FreezeRagdoll, 2.0f, false);
+
+    CreateInventoryItem("item");
 }
 
 void AEnemyCharacter::FreezeRagdoll()
@@ -333,4 +335,18 @@ void AEnemyCharacter::FreezeRagdoll()
     SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
     SkeletalMeshComponent->bPauseAnims = true;
     SkeletalMeshComponent->SetComponentTickEnabled(false);
+}
+
+
+void AEnemyCharacter::CreateInventoryItem(FString name)
+{
+    //FVector SpawnLocation = FVector(-17307.0, 3811.0, 1222.100393);
+    //FRotator SpawnRotation = FRotator(22.833177, 96.678432, 5.169551);
+
+    FVector SpawnLocation = GetActorLocation();
+    FRotator SpawnRotation = GetActorRotation();
+
+    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_box36.BP_Item_box36_C'"))) {
+        AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, SpawnLocation, SpawnRotation);
+    }
 }
