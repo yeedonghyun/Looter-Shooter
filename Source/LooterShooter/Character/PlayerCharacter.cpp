@@ -1,5 +1,6 @@
 #include "PlayerCharacter.h"
 #include "../Bullet/Bullet.h"
+#include "../Character/EnemyCharacter.h"
 #include <Kismet/GameplayStatics.h>
 
 APlayerCharacter::APlayerCharacter() {
@@ -333,61 +334,55 @@ void APlayerCharacter::CheckWall(FVector Start, FRotator Rotation, int ViewDis)
 void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
 {
     FHitResult HitOut;
-    FVector EndPoint = ((Rotation.Vector() * ViewDis) + Start);
+    FVector EndPoint = Start + Rotation.Vector() * ViewDis;
+
     FCollisionQueryParams TraceParams;
     TraceParams.bTraceComplex = true;
     TraceParams.AddIgnoredActor(this);
 
-    bool bCollision = GetWorld()->LineTraceSingleByChannel(HitOut, Start, EndPoint, ECC_Visibility, TraceParams);
+    bool bCollision = GetWorld()->LineTraceSingleByChannel(HitOut, Start, EndPoint, ECC_WorldStatic, TraceParams);
+    AActor* HitActor = HitOut.GetActor();
+    AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(HitActor);
 
-    if (bCollision)
+    const bool bIsItem = HitActor && HitActor->IsA<AItemBase>();
+    const bool bIsDeadEnemy = Enemy && Enemy->GetCurrentState() == EEnemyState::Dead;
+
+    if (bCollision && (bIsItem || bIsDeadEnemy))
     {
-        AActor* HitActor = HitOut.GetActor();
-        if (HitActor && HitActor->IsA(AItemBase::StaticClass()))
+        AimedItem = bIsItem ? Cast<AItemBase>(HitActor) : Enemy->GetInventory();
+
+        if (PlayerUI)
         {
-            AimedItem = Cast<AItemBase>(HitActor);
-            if (PlayerUI)
+            PlayerUI->ShowCrosshairOnAimEnd();
+            PlayerUI->ToggleInfoUI(true);
+            PlayerUI->UpdateInfoUI(AimedItem->ItemData, true);
+
+            if (AItem_Inventory* Inventory = Cast<AItem_Inventory>(AimedItem))
             {
-                PlayerUI->ShowCrosshairOnAimEnd();
-                PlayerUI->ToggleInfoUI(true);
-                PlayerUI->UpdateInfoUI(AimedItem->ItemData, true);
-                if (AItem_Inventory* inventory = Cast<AItem_Inventory>(AimedItem))
+                if (Inventory->InventoryType == EInventoryType::BOX)
                 {
-                    if (inventory->InventoryType == EInventoryType::BOX)
-                    {
-                        PlayerUI->UpdateInfoUI(AimedItem->ItemData, false);
-                    }
+                    PlayerUI->UpdateInfoUI(AimedItem->ItemData, false);
                 }
-            }
-        }
-        else
-        {
-            AimedItem = nullptr;
-            if (PlayerUI)
-            {
-                PlayerUI->HideCrosshairOnAim();
-                PlayerUI->ToggleInfoUI(false);
             }
         }
     }
     else
     {
         AimedItem = nullptr;
+
         if (PlayerUI)
         {
             PlayerUI->HideCrosshairOnAim();
             PlayerUI->ToggleInfoUI(false);
         }
 
-        if (InventoryUI)
+        if (InventoryUI && InventoryUI->bWorldInventoryOpen)
         {
-            if (InventoryUI->bWorldInventoryOpen)
-            {
-                InventoryUI->DeleteWorldInventory();
-            }
+            InventoryUI->DeleteWorldInventory();
         }
     }
 }
+
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -459,22 +454,26 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::Move(const FInputActionValue& InputValue)
 {
-    if (Controller && !bOpenInventory)
-    {
-        curState = PlayerState::MOVEMENT;
+    if (bOpenInventory || curState == PlayerState::DEAD)
+        return;
+    
+    curState = PlayerState::MOVEMENT;
 
-        FVector2D MovementVector = InputValue.Get<FVector2D>();
-        const FVector Forward = GetActorForwardVector();
-        const FVector Right = GetActorRightVector();
+    FVector2D MovementVector = InputValue.Get<FVector2D>();
+    const FVector Forward = GetActorForwardVector();
+    const FVector Right = GetActorRightVector();
 
-        const FVector Direction = (Forward * MovementVector.Y) + (Right * MovementVector.X);
+    const FVector Direction = (Forward * MovementVector.Y) + (Right * MovementVector.X);
 
-        AddMovementInput(Direction, 1.0f);
-    }
+    AddMovementInput(Direction, 1.0f);
+    
 }
 
 void APlayerCharacter::UnMove(const FInputActionValue& InputValue)
 {
+    if (curState == PlayerState::DEAD)
+        return;
+
     if (bRun)
     {
         UnRun(InputValue);
@@ -484,9 +483,9 @@ void APlayerCharacter::UnMove(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Look(const FInputActionValue& InputValue)
 {
-    if (bOpenInventory) {
+    if (bOpenInventory || curState == PlayerState::DEAD)
         return;
-    }
+    
 
     FVector2D LookVector = InputValue.Get<FVector2D>();
 
@@ -496,7 +495,7 @@ void APlayerCharacter::Look(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 {
-    if (curStamina < 0.1f || GetCharacterMovement()->IsFalling() || bOpenInventory) {
+    if (curStamina < 0.1f || GetCharacterMovement()->IsFalling() || bOpenInventory || curState == PlayerState::DEAD) {
         return;
     }
 
@@ -509,7 +508,7 @@ void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Reload(const FInputActionValue& InputValue)
 {
-    if (bReload || bShoot || bOpenInventory) {
+    if (bReload || bShoot || bOpenInventory || curState == PlayerState::DEAD) {
         return;
     }
 
@@ -529,6 +528,9 @@ void APlayerCharacter::Reload(const FInputActionValue& InputValue)
 
 void APlayerCharacter::ResetReload()
 {
+    if (curState == PlayerState::DEAD)
+        return;
+    
     if (PlayerUI) {
 
         if (MaxAmmo - MagazineAmmo > 0)
@@ -545,7 +547,7 @@ void APlayerCharacter::ResetReload()
 
 void APlayerCharacter::Run(const FInputActionValue& InputValue)
 {
-    if (Tired || bReload || bAiming || bCrouch || bOpenInventory || curState == PlayerState::IDLE)
+    if (Tired || bReload || bAiming || bCrouch || bOpenInventory || curState == PlayerState::IDLE || curState == PlayerState::DEAD)
     {
         return;
     }
@@ -592,30 +594,32 @@ void APlayerCharacter::ApplyDamage(int Damage)
 
     if (Armor > 0)
     {
-        const int32 ArmorAbsorb = FMath::Min(Armor, Damage);
-        Armor -= ArmorAbsorb;
-        Damage -= ArmorAbsorb;
+        Armor -= Damage;
+        
+        if (Armor <= 0.f) {
+            Armor = 0.f;
+        }
+        PlayerUI->SetArmor(Armor / MaxArmor);
     }
-
-    if (Damage > 0)
-    {
+    else {
         Health -= Damage;
 
-        if (Health <= 0)
+        if (Health <= 0.f)
         {
-            UGameplayStatics::OpenLevel(this, TEXT("Main"));
+            FadeInAndOut->PlayFadeOut();
+			curState = PlayerState::DEAD;
+            GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::OpenMainLevel, 5.f, false);
         }
-    }
 
-    if (PlayerUI)
-    {
         PlayerUI->SetHealth(Health / MaxHealth);
-        PlayerUI->SetArmor(Armor / MaxArmor);
     }
 }
 
 void APlayerCharacter::RunStart(float Output)
 {
+    if (curState == PlayerState::DEAD)
+        return;
+
     if (Camera)
     {
         Camera->SetFOV(Output);
@@ -629,6 +633,9 @@ void APlayerCharacter::RunEnd()
 
 void APlayerCharacter::Crouch(const FInputActionValue& InputValue)
 {
+    if (curState == PlayerState::DEAD)
+		return;
+
     if (bRun) {
         UnRun(InputValue);
     }
@@ -649,7 +656,7 @@ void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Aim(const FInputActionValue& InputValue)
 {
-    if (HandTired || bOpenInventory) {
+    if (HandTired || bOpenInventory || curState == PlayerState::DEAD) {
         return;
     }
 
@@ -666,7 +673,7 @@ void APlayerCharacter::UnAim(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
 {
-    if (CurrentAmmo <= 0 || bShoot || bRun || bReload || bOpenInventory)
+    if (CurrentAmmo <= 0 || bShoot || bRun || bReload || bOpenInventory || curState == PlayerState::DEAD)
         return;
 
     if (PlayerUI) {
@@ -697,7 +704,8 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
 
 void APlayerCharacter::AddRecoil()
 {
-    if (!PlayerController) return;
+    if (!PlayerController || curState == PlayerState::DEAD) 
+        return;
 
     float RecoilPitch = FMath::RandRange(0.5f, 2.0f);
     float RecoilYaw = FMath::RandRange(-1.0f, 1.0f);
@@ -722,21 +730,19 @@ void APlayerCharacter::UnShoot(const FInputActionValue& InputValue)
 
 void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 {
-    if (AimedItem) {
+    if (AimedItem && AimedItem->ItemData.Type == EItemType::INVENTORY) {
 
-        if (AimedItem->ItemData.Type == EItemType::INVENTORY)
+        AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
+        TArray<FSlotData>& Items = Bag->savedItems;
+
+        for (int i = 0; i < Items.Num(); i++)
         {
-            AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
-            TArray<FSlotData>& Items = Bag->savedItems;
-
-            for (int i = 0; i < Items.Num(); i++)
+            if (Items[i].bHaveItem)
             {
-                if (Items[i].bHaveItem)
-                {
-                    return;
-                }
+                return;
             }
         }
+        
         InventoryUI->AddItemEmptySlot(AimedItem);
         //AimedItem->Destroy();
     }
@@ -752,7 +758,7 @@ void APlayerCharacter::CreateItem(const FInputActionValue& InputValue)
 
 void APlayerCharacter::LeftTilt(const FInputActionValue& InputValue)
 {
-	if (bIsTilting || bRun)
+	if (bIsTilting || bRun || curState == PlayerState::DEAD)
 		return;
 
 	bIsTilting = true;
@@ -762,7 +768,7 @@ void APlayerCharacter::LeftTilt(const FInputActionValue& InputValue)
 
 void APlayerCharacter::UnLeftTilt(const FInputActionValue& InputValue)
 {
-    if (!bIsTilting)
+    if (!bIsTilting || curState == PlayerState::DEAD)
         return;
 
 	bIsTilting = false;
@@ -772,7 +778,7 @@ void APlayerCharacter::UnLeftTilt(const FInputActionValue& InputValue)
 
 void APlayerCharacter::RightTilt(const FInputActionValue& InputValue)
 {
-    if (bIsTilting || bRun)
+    if (bIsTilting || bRun || curState == PlayerState::DEAD)
         return;
 
 	bIsTilting = true;
@@ -782,7 +788,7 @@ void APlayerCharacter::RightTilt(const FInputActionValue& InputValue)
 
 void APlayerCharacter::UnRightTilt(const FInputActionValue& InputValue)
 {
-    if (!bIsTilting)
+    if (!bIsTilting || curState == PlayerState::DEAD)
         return;
 
 	bIsTilting = false;
@@ -813,7 +819,6 @@ void APlayerCharacter::ToggleInventory(const FInputActionValue& InputValue)
         }
     }
 }
-
 
 void APlayerCharacter::StaminaControl()
 {
@@ -866,11 +871,6 @@ void APlayerCharacter::HandStaminaControl()
     PlayerUI->SetHandStamina(curHandStamina);
 }
 
-
-
-
-
-
 void APlayerCharacter::LoadInventoryClass()
 {
     if (TSubclassOf<UUserWidget> InventoryClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_PlayerInventoryWidget.BP_PlayerInventoryWidget_C'")))
@@ -886,8 +886,6 @@ void APlayerCharacter::LoadInventoryClass()
         InventoryUI->OnItemUseRequested.AddUObject(this, &APlayerCharacter::UseItemWithDelay);
     }
 }
-
-
 
 void APlayerCharacter::CreateInventoryItem(FString name)
 {
@@ -907,7 +905,6 @@ void APlayerCharacter::UpdateItemUseDuration(float duration)
     else { PlayerUI->UpdateItemUsingTime(ItemUseDuration / ItemUseDelay); }
 }
 
-
 void APlayerCharacter::UseItemWithDelay(FItemData data)
 {
     bUsingItem = true;
@@ -919,7 +916,6 @@ void APlayerCharacter::UseItemWithDelay(FItemData data)
     PlayerUI->UpdateItemUsingTime(ItemUseDuration);
     PlayerUI->ShowUsingItemTimer();
 }
-
 
 void APlayerCharacter::UseItem()
 {
@@ -951,14 +947,10 @@ void APlayerCharacter::UseItem()
     PlayerUI->HideUsingItemTimer();
 }
 
-
-
-
 bool APlayerCharacter::IsEscaping()
 {
     return bIsEscaping;
 }
-
 
 /////////////////////////////////////////////////////////////////
 void APlayerCharacter::StartEscape(float EscapeTime)
@@ -986,10 +978,6 @@ void APlayerCharacter::UpdateEscapeDuration(float duration)
         FadeInAndOut->PlayFadeIn();
         GetWorldTimerManager().SetTimer(LevelTimerHandle, this, &APlayerCharacter::OpenMainLevel, 3.f, false);
     }
-
-
-
-
 }
 
 void APlayerCharacter::OpenMainLevel()

@@ -6,6 +6,7 @@
 #include "../Bullet/Bullet.h"
 #include "PlayerCharacter.h"
 #include "../Gun/Weapon.h"
+#include "../Item/Item_Inventory.h"
 #include "EnemyCharacter.generated.h"
 
 
@@ -15,7 +16,8 @@ enum class EEnemyState : uint8
 	Idle       UMETA(DisplayName = "Idle"),
 	Patrol     UMETA(DisplayName = "Patrol"),
 	Alert      UMETA(DisplayName = "Alert"),
-	Combat     UMETA(DisplayName = "Combat")
+	Combat     UMETA(DisplayName = "Combat"),
+	Dead 	   UMETA(DisplayName = "Dead")
 };
 
 UCLASS()
@@ -59,6 +61,9 @@ public:
 	int Health;
 
 	void CreateInventoryItem(FString name);
+
+	EEnemyState GetCurrentState() { return CurrentState; }
+	AItem_Inventory* GetInventory();
 
 protected:
 
@@ -139,4 +144,5 @@ protected:
 
 	TSubclassOf<AWeapon> WeaponClass;
 	AWeapon* Weapon;
+	AItem_Inventory* inventroy;
 };

@@ -32,7 +32,8 @@ public:
 		RUN,
 		MOVEMENT,
 		JUMP,
-		RELOAD
+		RELOAD,
+		DEAD
 	}; 
 
 	PlayerState curState;

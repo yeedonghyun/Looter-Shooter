@@ -48,7 +48,18 @@ void AEnemyCharacter::BeginPlay()
         if (Component && Component->ComponentHasTag(TEXT("SkeletalMeshComponent")))
         {
             SkeletalMeshComponent = Cast<USkeletalMeshComponent>(Component);
-            break;
+        }
+
+        if (UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>(Component))
+        {
+            if (ChildActorComp->ComponentHasTag(TEXT("Inventory")))
+            {
+                AItem_Inventory* InventoryActor = Cast<AItem_Inventory>(ChildActorComp->GetChildActor());
+                if (InventoryActor)
+                {
+                    inventroy = InventoryActor;
+                }
+            }
         }
     }
 
@@ -312,7 +323,7 @@ void AEnemyCharacter::ApplyDamage(int DamageAmount)
     {
         if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
         {
-            BB->SetValueAsBool(TEXT("bIsDead"), true);
+            BB->SetValueAsBool(TEXT("bIsDead"), true);			
         }
         AIC->UnPossess();
     }
@@ -320,23 +331,28 @@ void AEnemyCharacter::ApplyDamage(int DamageAmount)
     GetWorldTimerManager().SetTimer(FreezeStateTimerHandle, this,
         &AEnemyCharacter::FreezeRagdoll, 2.0f, false);
 
-    CreateInventoryItem("item");
+    CurrentState = EEnemyState::Dead;
 }
 
 void AEnemyCharacter::FreezeRagdoll()
 {
     if (!SkeletalMeshComponent) return;
 
+    // 모든 속도 정지
     SkeletalMeshComponent->SetAllPhysicsLinearVelocity(FVector::ZeroVector, false);
     SkeletalMeshComponent->SetAllPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false);
 
+    // 시뮬레이션 비활성화
     SkeletalMeshComponent->SetSimulatePhysics(false);
 
+    // 루트 본 강제 위치 고정
+    SkeletalMeshComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+
+    // 애니메이션 정지
     SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
     SkeletalMeshComponent->bPauseAnims = true;
     SkeletalMeshComponent->SetComponentTickEnabled(false);
 }
-
 
 void AEnemyCharacter::CreateInventoryItem(FString name)
 {
@@ -349,4 +365,9 @@ void AEnemyCharacter::CreateInventoryItem(FString name)
     if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_box36.BP_Item_box36_C'"))) {
         AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, SpawnLocation, SpawnRotation);
     }
+}
+
+AItem_Inventory* AEnemyCharacter::GetInventory()
+{
+    return inventroy;
 }
