@@ -13,9 +13,6 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotActionSelected, ESlotActionType, ActionType);
 
-//DECLARE_MULTICAST_DELEGATE_OneParam(FOnSlotActionSelected, ESlotActionType);
-
-
 UCLASS()
 class LOOTERSHOOTER_API URightClickOption : public UUserWidget
 {
@@ -26,10 +23,10 @@ public:
 	virtual void NativeConstruct() override;
 
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	UButton* BUse;
 	
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	UButton* BDrop;
 
 	UFUNCTION()

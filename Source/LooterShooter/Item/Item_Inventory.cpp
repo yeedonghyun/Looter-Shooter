@@ -18,6 +18,43 @@ void AItem_Inventory::BeginPlay()
             break;
         }
     }
+
+    if (InventoryType == EInventoryType::BOX)
+    {
+        TArray<FString> itemList = { "Ammo1" , "Armor1" ,"Armor3" ,"bag48" ,"Heal1" ,"Heal2" };
+        int randCnt = FMath::RandRange(0, 4);
+        int cnt = 0;
+
+        for (int i = 0; i < randCnt; i++)
+        {
+            int randItemIdx = FMath::RandRange(0, itemList.Num() - 1);
+
+            while (1)
+            {
+                int randIdx = FMath::RandRange(0, savedItems.Num() - 1);
+
+                if (savedItems[randIdx].bHaveItem)
+                {
+                    continue;
+                }
+
+                FString name = itemList[randItemIdx];
+                FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *name, *name);
+
+                if (TSubclassOf<AItemBase> ItemClass = LoadClass<AItemBase>(nullptr, *FullPath))
+                {
+                    AItemBase* DefaultObject = ItemClass->GetDefaultObject<AItemBase>();
+
+                    if (DefaultObject)
+                    {
+                        savedItems[randIdx].SetSlotFromItemData(DefaultObject->ItemData);
+                        break;
+                    }
+                }
+            }
+        }
+
+    }
 }
 
 #if WITH_EDITOR

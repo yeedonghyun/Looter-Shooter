@@ -21,6 +21,8 @@ void UPlayerInventoryWidget::AddItemEmptySlot(AItemBase* AimedItem) // ²ËÂ÷¸é ¾È
 {
 	int emptyIdx = FindEmptySlot(PlayerInventoryArray);
 	PlayerInventoryArray[emptyIdx]->SetSlotFromItem(AimedItem->ItemData);
+
+	UpdateMagazine();
 }
 
 int UPlayerInventoryWidget::FindEmptySlot(TArray<UInventorySlot*>& SlotArray)
@@ -307,6 +309,8 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 		}
 
 	}
+
+	UpdateMagazine();
 }
 
 
@@ -336,4 +340,55 @@ void UPlayerInventoryWidget::SetUIMode(ESlateVisibility Visible, bool showCursor
 	SetIsEnabled(bSetIsEnable);
 	SetRenderOpacity(UIOpacity);
 	SetVisibility(Visible);
+}
+
+void UPlayerInventoryWidget::UpdateMagazine()
+{
+	CheckAmmo();
+
+	OnUpdateMagazineRequested.Broadcast(sumAmmo);
+}
+
+
+int UPlayerInventoryWidget::GetAmmo(int needAmmo)
+{
+	int ammoTaken = 0;
+	int ammoToTakeFromSlot = FMath::Min(needAmmo, FirstAmmoSlot->SlotData.Amount);
+
+	ammoTaken += ammoToTakeFromSlot;
+	needAmmo -= ammoToTakeFromSlot;
+	FirstAmmoSlot->SlotData.Amount -= ammoToTakeFromSlot;
+	sumAmmo -= ammoToTakeFromSlot;
+
+	FString fs = FString::FromInt(FirstAmmoSlot->SlotData.Amount);
+	FirstAmmoSlot->Amount->SetText(FText::FromString(fs));
+
+	if (FirstAmmoSlot->SlotData.Amount == 0)
+	{
+		FirstAmmoSlot->SlotData.bHaveItem = false;
+		FirstAmmoSlot->ToggleSlot();
+		CheckAmmo();
+	}
+
+	if (needAmmo > 0)
+	{
+		ammoToTakeFromSlot = FMath::Min(needAmmo, FirstAmmoSlot->SlotData.Amount);
+
+		ammoTaken += ammoToTakeFromSlot;
+		needAmmo -= ammoToTakeFromSlot;
+		FirstAmmoSlot->SlotData.Amount -= ammoToTakeFromSlot;
+
+		fs = FString::FromInt(FirstAmmoSlot->SlotData.Amount);
+		FirstAmmoSlot->Amount->SetText(FText::FromString(fs));
+		sumAmmo -= ammoToTakeFromSlot;
+
+		if (FirstAmmoSlot->SlotData.Amount == 0)
+		{
+			FirstAmmoSlot->SlotData.bHaveItem = false;
+			FirstAmmoSlot->ToggleSlot();
+			CheckAmmo();
+		}
+	}
+
+	return ammoTaken;
 }

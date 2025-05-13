@@ -19,6 +19,9 @@ enum class EItemType : uint8
 };
 
 
+
+
+
 USTRUCT(BlueprintType)
 struct FItemData : public FTableRowBase
 {
@@ -37,6 +40,7 @@ public:
 		LootDelay = 0;
 		UseDelay = 0;
 		Amount = 0;
+		MaxAmount = 0;
 	}
 
 	void SetItemFromSlotData(FSlotData data);
@@ -65,6 +69,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
 		int32 Amount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
+		int32 MaxAmount;
 };
 
 USTRUCT(BlueprintType)
@@ -85,8 +92,6 @@ public:
 		bool bHaveItem;
 
 };
-
-
 
 
 class LOOTERSHOOTER_API ItemData

@@ -26,6 +26,7 @@
 
 DECLARE_EVENT_OneParam(UPlayerInventoryWidget, FDropInventoryItem, FString)
 DECLARE_EVENT_OneParam(UPlayerInventoryWidget, FUseInventoryItem, FItemData)
+DECLARE_EVENT_OneParam(UPlayerInventoryWidget, FUpdateMagazine, int)
 
 UCLASS()
 class LOOTERSHOOTER_API UPlayerInventoryWidget : public UInventoryWidgetBase
@@ -53,12 +54,12 @@ public:
 	virtual void UseItem(UInventorySlot* TargetSlot) override;
 	virtual void DropItem(UInventorySlot* TargetSlot) override;
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot) override;
-
+	virtual void UpdateMagazine() override;
 
 	void ToggleInventory(bool bOpen);
 	void SetUIMode(ESlateVisibility Visible, bool showCursor, const FInputModeDataBase& InData, bool bSetIsEnable, float UIOpacity);
 
-
+	int GetAmmo(int needAmmo);
 
 protected:
 
@@ -72,4 +73,5 @@ public:
 
 	FDropInventoryItem OnDropRequested;
 	FUseInventoryItem OnItemUseRequested;
+	FUpdateMagazine OnUpdateMagazineRequested;
 };

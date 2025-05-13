@@ -124,21 +124,25 @@ void UInventorySlot::SetSlotFromSlot(const FSlotData& data)
 	SlotData = data;
 	GetItemImage(SlotData.Name);
 	ToggleSlot();
-
-	if (SlotData.Type == EItemType::AMMO)
-	{
-		if (Amount)
-		{
-			FString fs = FString::FromInt(SlotData.Amount);
-			Amount->SetText(FText::FromString(fs));
-		}
-	}
-
-
 }
 
 void UInventorySlot::ToggleSlot()
 {
+	if (Amount)
+	{
+		if (SlotData.Amount > 0)
+		{
+			FString fs = FString::FromInt(SlotData.Amount);
+			Amount->SetText(FText::FromString(fs));
+		}
+
+		else
+		{
+			Amount->SetText(FText::FromString(""));
+		}
+	}
+
+
 	if (SlotData.bHaveItem)
 	{
 		IMG_Item->SetVisibility(ESlateVisibility::Visible);
@@ -147,6 +151,11 @@ void UInventorySlot::ToggleSlot()
 	else
 	{
 		IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+
+		if (Amount)
+		{
+			Amount->SetText(FText::FromString(""));
+		}
 	}
 }
 

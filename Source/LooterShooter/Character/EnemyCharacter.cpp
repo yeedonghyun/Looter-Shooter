@@ -362,7 +362,11 @@ void AEnemyCharacter::CreateInventoryItem(FString name)
     FVector SpawnLocation = GetActorLocation();
     FRotator SpawnRotation = GetActorRotation();
 
+    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CreateInventoryItem")));
+
     if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_box36.BP_Item_box36_C'"))) {
+        
+        GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CreateInventoryItem111")));
         AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, SpawnLocation, SpawnRotation);
     }
 }

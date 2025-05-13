@@ -3,6 +3,7 @@
 
 #include "InventoryWidgetBase.h"
 
+
 void UInventoryWidgetBase::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -67,9 +68,9 @@ void UInventoryWidgetBase::InitWidget()
 		{
 			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
 
-			if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
+			if (TSubclassOf<AItem_Inventory> ItemClass = LoadClass<AItem_Inventory>(nullptr, *FullPath))
 			{
-				AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
+				AItem_Inventory* DefaultBag = ItemClass->GetDefaultObject<AItem_Inventory>();
 				CreateInventory(EquipInventoryArray, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height, EUnderInventoryType::EQUIP);
 				EquipInventory->ItemSlot->SetSlotFromItem(DefaultBag->ItemData);
 			}
@@ -110,7 +111,6 @@ void UInventoryWidgetBase::InitWidget()
 	{
 		WorldBoxInventory->SetVisibility(ESlateVisibility::Collapsed);
 	}
-
 }
 
 
@@ -191,9 +191,11 @@ void UInventoryWidgetBase::HandleSlotActionRequest(UInventorySlot* TargetSlot, E
 			RightClickOption->RemoveFromParent();
 		}
 
+		DedicateSlot = TargetSlot;
+
 		CreateClickOption();
 
-		DedicateSlot = TargetSlot;
+
 
 		break;
 
@@ -206,9 +208,11 @@ void UInventoryWidgetBase::HandleSlotActionRequest(UInventorySlot* TargetSlot, E
 			RightClickOption->RemoveFromParent();
 		}
 
+		DedicateSlot = TargetSlot;
+
 		CreateClickOption();
 
-		DedicateSlot = TargetSlot;
+
 
 		break;
 
@@ -255,6 +259,20 @@ void UInventoryWidgetBase::CreateClickOption()
 
 			RightClickOption->AddToViewport();
 			RightClickOption->OnActionSelected.AddDynamic(this, &UInventoryWidgetBase::OnSlotActionSelected);
+
+			if (DedicateSlot)
+			{
+				if (DedicateSlot->SlotData.Type == EItemType::AMMO || DedicateSlot->SlotData.Type == EItemType::INVENTORY)
+				{
+					RightClickOption->BUse->SetIsEnabled(false);
+				}
+
+				else
+				{
+					RightClickOption->BUse->SetIsEnabled(true);
+				}
+			}
+
 		}
 	}
 
@@ -271,6 +289,10 @@ void UInventoryWidgetBase::UseItem(UInventorySlot* TargetSlot)
 }
 
 void UInventoryWidgetBase::DropItem(UInventorySlot* TargetSlot)
+{
+}
+
+void UInventoryWidgetBase::UpdateMagazine()
 {
 }
 

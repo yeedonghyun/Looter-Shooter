@@ -16,7 +16,7 @@ APlayerCharacter::APlayerCharacter() {
     CurrentAmmo = 30;
     MagazineAmmo = 30;
 
-    MaxAmmo = 60;
+    MaxAmmo = 0;
 
     AimedItem = nullptr;
     curHandStamina = 1.f;
@@ -508,7 +508,7 @@ void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Reload(const FInputActionValue& InputValue)
 {
-    if (bReload || bShoot || bOpenInventory || curState == PlayerState::DEAD) {
+    if (bReload || bShoot || bOpenInventory || curState == PlayerState::DEAD || MaxAmmo <= 0) {
         return;
     }
 
@@ -531,13 +531,15 @@ void APlayerCharacter::ResetReload()
     if (curState == PlayerState::DEAD)
         return;
     
+    if (InventoryUI)
+    {
+        CurrentAmmo = InventoryUI->GetAmmo(MagazineAmmo - CurrentAmmo) + CurrentAmmo;
+        MaxAmmo = InventoryUI->sumAmmo;
+    }
+
+
     if (PlayerUI) {
 
-        if (MaxAmmo - MagazineAmmo > 0)
-        {
-            CurrentAmmo = MagazineAmmo;
-            MaxAmmo -= MagazineAmmo;
-        }
         PlayerUI->SetLeftAmmoText(CurrentAmmo);
         PlayerUI->SetMagazineText(MaxAmmo);
     }
@@ -730,19 +732,32 @@ void APlayerCharacter::UnShoot(const FInputActionValue& InputValue)
 
 void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 {
-    if (AimedItem && AimedItem->ItemData.Type == EItemType::INVENTORY) {
+    if (AimedItem) {
 
-        AItem_bag* Bag = Cast<AItem_bag>(AimedItem);
-        TArray<FSlotData>& Items = Bag->savedItems;
-
-        for (int i = 0; i < Items.Num(); i++)
+        if (AimedItem->ItemData.Type == EItemType::INVENTORY)
         {
-            if (Items[i].bHaveItem)
+            AItem_Inventory* Bag = Cast<AItem_Inventory>(AimedItem);
+
+            if (Bag->InventoryType == EInventoryType::BOX)
             {
                 return;
             }
+
+            TArray<FSlotData>& Items = Bag->savedItems;
+
+            if (Items.Num() > 0)
+            {
+                for (int i = 0; i < Items.Num(); i++)
+                {
+                    if (Items[i].bHaveItem)
+                    {
+                        return;
+                    }
+                }
+            }
+
+
         }
-        
         InventoryUI->AddItemEmptySlot(AimedItem);
         //AimedItem->Destroy();
     }
@@ -884,6 +899,9 @@ void APlayerCharacter::LoadInventoryClass()
         InventoryUI->ToggleInventory(bOpenInventory);
         InventoryUI->OnDropRequested.AddUObject(this, &APlayerCharacter::CreateInventoryItem);
         InventoryUI->OnItemUseRequested.AddUObject(this, &APlayerCharacter::UseItemWithDelay);
+        InventoryUI->OnUpdateMagazineRequested.AddUObject(this, &APlayerCharacter::UpdateMagazine);
+
+        InventoryUI->UpdateMagazine();
     }
 }
 
@@ -983,4 +1001,39 @@ void APlayerCharacter::UpdateEscapeDuration(float duration)
 void APlayerCharacter::OpenMainLevel()
 {
     UGameplayStatics::OpenLevel(this, FName("Main"));
+}
+
+
+
+void APlayerCharacter::UpdateMagazine(int maxAmmo)
+{
+    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("UpdateMagazine")));
+
+    MaxAmmo = maxAmmo;
+    PlayerUI->SetMagazineText(MaxAmmo);
+}
+
+
+void APlayerCharacter::GetPlayerAmmoData()
+{
+    //LoadSaveData
+    //EquipAmmoArr 업데이트
+    curAmmoIdx = 0;
+    //플레이어 UI 업데이트
+}
+
+void APlayerCharacter::ChangeAmmo()
+{
+    if (curAmmoIdx + 1 > EquipAmmoArr.Num())
+    {
+        curAmmoIdx = 0;
+    }
+
+    else
+    {
+        curAmmoIdx += 1;
+    }
+
+    //탄약 새로 계산?
+    //플레이어 UI 업데이트
 }

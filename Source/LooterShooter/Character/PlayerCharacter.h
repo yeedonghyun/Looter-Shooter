@@ -16,6 +16,9 @@
 #include "../Widget/PlayerInventoryWidget.h"
 #include "../Widget/FadeInAndOutWidget.h"
 #include "../Widget/HitAndHealIndicatorWidget.h"
+#include "../Bullet/BulletData.h"
+
+
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -265,6 +268,9 @@ private:
 	UFUNCTION()
 	void HandStaminaControl();
 
+
+	void UpdateMagazine(int maxAmmo);
+
 private:
 	FVector2D TargetRecoilOffset = FVector2D::ZeroVector;
 	FVector2D CurrentRecoilOffset = FVector2D::ZeroVector;
@@ -281,4 +287,30 @@ private:
 
 	FVector BaseRelLocation;
 	FRotator BaseRelRotation;
+
+
+
+
+
+
+
+
+/// <summary>
+/// PlayerAmmo
+/// </summary>
+public:
+
+	struct EquipAmmo : UBulletData
+	{
+		int curAmmo;
+		int curMagazine;
+	};
+
+	TArray<EquipAmmo> EquipAmmoArr;
+	int curAmmoIdx;
+
+	void GetPlayerAmmoData();
+	void ChangeAmmo();
 };
+
+

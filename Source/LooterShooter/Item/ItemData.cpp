@@ -15,6 +15,7 @@ void FSlotData::SetSlotFromItemData(FItemData data)
 	LootDelay = data.LootDelay;
 	UseDelay = data.UseDelay;
 	Amount = data.Amount;
+	MaxAmount = data.MaxAmount;
 }
 
 void FItemData::SetItemFromSlotData(FSlotData data)
@@ -27,4 +28,5 @@ void FItemData::SetItemFromSlotData(FSlotData data)
 	LootDelay = data.LootDelay;
 	UseDelay = data.UseDelay;
 	Amount = data.Amount;
+	MaxAmount = data.MaxAmount;
 }

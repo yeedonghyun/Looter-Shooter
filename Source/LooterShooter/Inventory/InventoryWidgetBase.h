@@ -15,6 +15,7 @@
 #include "../Inventory/Inventory.h"
 #include "../Inventory/ItemInventory.h"
 #include "../Inventory/RightClickOption.h"
+#include <LooterShooter/Item/Item_Inventory.h>
 
 #include "InventoryWidgetBase.generated.h"
 
@@ -57,6 +58,7 @@ public:
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot);
 	virtual void UseItem(UInventorySlot* TargetSlot);
 	virtual void DropItem(UInventorySlot* TargetSlot);
+	virtual void UpdateMagazine();
 
 	UFUNCTION(BlueprintCallable)
 	void ShowWarningMessage(FString fs);
@@ -127,5 +129,11 @@ public:
 	int sumAmmo;
 
 	UInventorySlot* FirstAmmoSlot;
+
+
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* AmmoCnt;
+
 
 };

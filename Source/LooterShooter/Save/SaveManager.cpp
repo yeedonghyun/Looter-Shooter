@@ -47,15 +47,3 @@ void CreateNewSaveData(const FString& SaveSlotName)
 	USaveManager* NewSave = Cast<USaveManager>(UGameplayStatics::CreateSaveGameObject(USaveManager::StaticClass()));
 	UGameplayStatics::SaveGameToSlot(NewSave, SaveSlotName, 0);
 }
-
-
-
-//void USaveManager::SaveData(const FString& SaveSlotName)
-//{
-//	USaveManager* SaveGameInstance = Cast<USaveManager>(UGameplayStatics::CreateSaveGameObject(USaveManager::StaticClass()));
-//
-//	if (SaveGameInstance)
-//	{
-//		UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveSlotName, 0);
-//	}
-//}
