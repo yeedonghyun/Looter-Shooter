@@ -46,7 +46,7 @@ void USelectMapUserWidget::OnPlayButtonClicked()
         UGameplayStatics::OpenLevel(this, FName("L_Showcase_map"));
     }
     else if (MapIndex == 2) {
-        UGameplayStatics::OpenLevel(this, FName("Map_Airbase_Demo"));
+        UGameplayStatics::OpenLevel(this, FName("TestLevel"));
     }
 }
 

@@ -36,6 +36,7 @@ APlayerCharacter::APlayerCharacter() {
     bIsEscaping = false;
     EscapeDuration = 0.0f;
     EscapeDelay = 1.0f;
+    bIskeyTutorialActive = false;
 
 	GunEndPoint = FVector::ZeroVector;
     TargetOffset = FVector::ZeroVector;
@@ -88,6 +89,10 @@ APlayerCharacter::APlayerCharacter() {
     RightAction = LoadObject<UInputAction>(nullptr,
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_RightTilt.IA_RightTilt'"));
 
+    KeyTutorialAction = LoadObject<UInputAction>(nullptr,
+        TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_KeyTutorial.IA_KeyTutorial'"));
+
+    BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'"));
     static ConstructorHelpers::FClassFinder<AActor> WeaponBP(TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Gun/BP_Weapon1.BP_Weapon1_C'"));
     if (WeaponBP.Succeeded())
     {
@@ -177,6 +182,15 @@ void APlayerCharacter::BeginPlay()
         if (HitAndHealIndicatorUI)
         {
             HitAndHealIndicatorUI->AddToViewport();
+        }
+    }
+
+    if (TSubclassOf<UUserWidget> KeyTutorialUIClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_KeyTutorialWidget.BP_KeyTutorialWidget_C'")))
+    {
+        KeyTutorialUI = CreateWidget<UKeyTutorialWidget>(GetWorld(), KeyTutorialUIClass);
+        if (KeyTutorialUI)
+        {
+            KeyTutorialUI->AddToViewport();
         }
     }
 
@@ -449,12 +463,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
         MethodPointer = &APlayerCharacter::UnRightTilt;
         EnhancedInputComponent->BindAction(RightAction, ETriggerEvent::Completed, this, MethodPointer);
+
+        MethodPointer = &APlayerCharacter::ToggleKeyTutorial;
+        EnhancedInputComponent->BindAction(KeyTutorialAction, ETriggerEvent::Started, this, MethodPointer);
     }
 }
 
 void APlayerCharacter::Move(const FInputActionValue& InputValue)
 {
-    if (bOpenInventory || curState == PlayerState::DEAD)
+    if (bOpenInventory || curState == PlayerState::DEAD || bIskeyTutorialActive)
         return;
     
     curState = PlayerState::MOVEMENT;
@@ -483,7 +500,7 @@ void APlayerCharacter::UnMove(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Look(const FInputActionValue& InputValue)
 {
-    if (bOpenInventory || curState == PlayerState::DEAD)
+    if (bOpenInventory || curState == PlayerState::DEAD || bIskeyTutorialActive)
         return;
     
 
@@ -495,7 +512,7 @@ void APlayerCharacter::Look(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 {
-    if (curStamina < 0.1f || GetCharacterMovement()->IsFalling() || bOpenInventory || curState == PlayerState::DEAD) {
+    if (curStamina < 0.1f || GetCharacterMovement()->IsFalling() || bOpenInventory || curState == PlayerState::DEAD || bUsingItem || bIskeyTutorialActive) {
         return;
     }
 
@@ -508,7 +525,7 @@ void APlayerCharacter::Jump(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Reload(const FInputActionValue& InputValue)
 {
-    if (bReload || bShoot || bOpenInventory || curState == PlayerState::DEAD || MaxAmmo <= 0) {
+    if (bReload || bShoot || bOpenInventory || curState == PlayerState::DEAD || MaxAmmo <= 0 || bUsingItem || bIskeyTutorialActive) {
         return;
     }
 
@@ -549,7 +566,7 @@ void APlayerCharacter::ResetReload()
 
 void APlayerCharacter::Run(const FInputActionValue& InputValue)
 {
-    if (Tired || bReload || bAiming || bCrouch || bOpenInventory || curState == PlayerState::IDLE || curState == PlayerState::DEAD)
+    if (Tired || bReload || bAiming || bCrouch || bOpenInventory || curState == PlayerState::IDLE || curState == PlayerState::DEAD || bUsingItem)
     {
         return;
     }
@@ -592,7 +609,7 @@ void APlayerCharacter::UnRun(const FInputActionValue& InputValue)
 
 void APlayerCharacter::ApplyDamage(int Damage)
 {
-    HitAndHealIndicatorUI->PlayHit();
+	if (curState == PlayerState::DEAD) return;
 
     if (Armor > 0)
     {
@@ -603,18 +620,44 @@ void APlayerCharacter::ApplyDamage(int Damage)
         }
         PlayerUI->SetArmor(Armor / MaxArmor);
     }
-    else {
+    else
+    {
         Health -= Damage;
+        PlayerUI->SetHealth(Health / MaxHealth);
 
         if (Health <= 0.f)
         {
-            FadeInAndOut->PlayFadeOut();
-			curState = PlayerState::DEAD;
-            GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::OpenMainLevel, 5.f, false);
-        }
+            FadeInAndOut->PlayFadeIn();
+            curState = PlayerState::DEAD;
 
-        PlayerUI->SetHealth(Health / MaxHealth);
+            GetWorldTimerManager().SetTimer(
+                ShootResetTimerHandle,
+                this, &APlayerCharacter::OpenMainLevel,
+                5.f, false
+            );
+
+            if (SkeletalMeshComponent)
+            {
+                SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+                SkeletalMeshComponent->SetCollisionObjectType(ECC_PhysicsBody);
+                SkeletalMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+                SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+
+                SkeletalMeshComponent->bPauseAnims = true;
+                SkeletalMeshComponent->bBlendPhysics = true;
+
+                SkeletalMeshComponent->SetAllBodiesSimulatePhysics(true);
+                SkeletalMeshComponent->WakeAllRigidBodies();
+            }
+
+            return;
+        }
     }
+
+	if (HitAndHealIndicatorUI)
+	{
+		HitAndHealIndicatorUI->PlayHit();
+	}
 }
 
 void APlayerCharacter::RunStart(float Output)
@@ -675,7 +718,7 @@ void APlayerCharacter::UnAim(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
 {
-    if (CurrentAmmo <= 0 || bShoot || bRun || bReload || bOpenInventory || curState == PlayerState::DEAD)
+    if (CurrentAmmo <= 0 || bShoot || bRun || bReload || bOpenInventory || curState == PlayerState::DEAD || bIskeyTutorialActive)
         return;
 
     if (PlayerUI) {
@@ -686,16 +729,21 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
     SkeletalMeshComponent->GetAnimInstance()->Montage_Play(ShootAnimation, 1.f);
     Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunShootAnimation, 1.f);
     
-    if (TSubclassOf<AActor> BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'")))    {
+    if (BulletClass && Weapon) {
+        FVector MuzzleLocation = Weapon->GetEndPointLocation();
+        FRotator FireRotation = Camera->GetCameraRotation();
 
-        if (BulletClass && Weapon) {
-            FVector MuzzleLocation = Weapon->GetEndPointLocation();
-
-            GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, Camera->GetCameraRotation());
-			Weapon->SpawnMuzzleFlash();
+        if (!bAiming) {
+            float RandomYaw = FMath::RandRange(-2.0f, 2.0f);
+            float RandomPitch = FMath::RandRange(-1.0f, 1.0f);
+            FireRotation.Yaw += RandomYaw;
+            FireRotation.Pitch += RandomPitch;
         }
-    }
 
+        GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, FireRotation);
+        Weapon->SpawnMuzzleFlash();
+    }
+    
     AddRecoil();
 
     bShoot = true;
@@ -709,7 +757,7 @@ void APlayerCharacter::AddRecoil()
     if (!PlayerController || curState == PlayerState::DEAD) 
         return;
 
-    float RecoilPitch = FMath::RandRange(0.5f, 2.0f);
+    float RecoilPitch = FMath::RandRange(0.5f, 1.0f);
     float RecoilYaw = FMath::RandRange(-1.0f, 1.0f);
 
     if (!bAiming) {
@@ -809,6 +857,33 @@ void APlayerCharacter::UnRightTilt(const FInputActionValue& InputValue)
 	bIsTilting = false;
     TargetRoll = 0.0f;
     TargetOffset = FVector::ZeroVector;
+}
+
+void APlayerCharacter::ToggleKeyTutorial(const FInputActionValue& InputValue)
+{
+    if (!KeyTutorialUI || !PlayerController || bOpenInventory) return;
+
+    if (bIskeyTutorialActive)
+    {
+        KeyTutorialUI->HideCanvasPanel();
+        bIskeyTutorialActive = false;
+
+        PlayerController->bShowMouseCursor = false;
+        PlayerController->SetInputMode(FInputModeGameOnly());
+    }
+    else
+    {
+        KeyTutorialUI->ShowCanvasPanel();
+        bIskeyTutorialActive = true;
+
+        PlayerController->bShowMouseCursor = true;
+
+        FInputModeGameAndUI InputMode;
+        InputMode.SetWidgetToFocus(KeyTutorialUI->TakeWidget());
+        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+        InputMode.SetHideCursorDuringCapture(false);
+        PlayerController->SetInputMode(InputMode);
+    }
 }
 
 void APlayerCharacter::CrouchStart(float Output)

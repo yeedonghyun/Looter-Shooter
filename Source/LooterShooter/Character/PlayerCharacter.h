@@ -16,6 +16,7 @@
 #include "../Widget/PlayerInventoryWidget.h"
 #include "../Widget/FadeInAndOutWidget.h"
 #include "../Widget/HitAndHealIndicatorWidget.h"
+#include "../Widget/KeyTutorialWidget.h"
 #include "../Bullet/BulletData.h"
 
 
@@ -71,6 +72,8 @@ protected:
 	void RightTilt(const FInputActionValue& InputValue);
 	void UnRightTilt(const FInputActionValue& InputValue);
 
+	void ToggleKeyTutorial(const FInputActionValue& InputValue);
+
 	void CheckObjectCloseAhead();
 	void CheckWall(FVector Start, FRotator Rotation, int ViewDis);
 	void CheckItem(FVector Start, FRotator Rotation, int ViewDis);
@@ -100,6 +103,7 @@ protected:
 	UInputAction* InventoryAction;
 	UInputAction* leftTiltAction;
 	UInputAction* RightAction;
+	UInputAction* KeyTutorialAction;
 
 	APlayerCameraManager* Camera;
 	APlayerController* PlayerController;
@@ -108,6 +112,8 @@ protected:
 	UPlayerUIWidget* PlayerUI;
 	UFadeInAndOutWidget* FadeInAndOut;
 	UHitAndHealIndicatorWidget* HitAndHealIndicatorUI;
+	UKeyTutorialWidget* KeyTutorialUI;
+
 	FVector GunEndPoint;
 
 	UPlayerInventoryWidget* InventoryUI;
@@ -204,6 +210,7 @@ public:
 	bool bIsEscaping;
 	float EscapeDuration;
 	float EscapeDelay;
+	bool bIskeyTutorialActive;
 
 private:
 	//Run
@@ -288,7 +295,7 @@ private:
 	FVector BaseRelLocation;
 	FRotator BaseRelRotation;
 
-
+	TSubclassOf<AActor> BulletClass;
 
 
 

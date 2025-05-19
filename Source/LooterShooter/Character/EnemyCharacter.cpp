@@ -92,6 +92,8 @@ void AEnemyCharacter::BeginPlay()
             Weapon = Cast<AWeapon>(SpawnedWeapon);
         }
     }
+
+	spawnLocation = GetActorLocation();
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
@@ -299,8 +301,6 @@ void AEnemyCharacter::ApplyDamage(int DamageAmount)
     bIsDead = true;
     bDetectPlayer = false;
 
-    if (Weapon) Weapon->Destroy();
-
     UCapsuleComponent* Capsule = GetCapsuleComponent();
     Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -338,17 +338,13 @@ void AEnemyCharacter::FreezeRagdoll()
 {
     if (!SkeletalMeshComponent) return;
 
-    // 모든 속도 정지
     SkeletalMeshComponent->SetAllPhysicsLinearVelocity(FVector::ZeroVector, false);
     SkeletalMeshComponent->SetAllPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false);
 
-    // 시뮬레이션 비활성화
     SkeletalMeshComponent->SetSimulatePhysics(false);
 
-    // 루트 본 강제 위치 고정
     SkeletalMeshComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
 
-    // 애니메이션 정지
     SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
     SkeletalMeshComponent->bPauseAnims = true;
     SkeletalMeshComponent->SetComponentTickEnabled(false);

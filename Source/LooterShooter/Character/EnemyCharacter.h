@@ -57,6 +57,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ApplyDamage(int DamageAmount);
 
+	UFUNCTION(BlueprintCallable)
+	FVector GetSpawnLocation() { return spawnLocation; }
+
 	UPROPERTY(BlueprintReadWrite)
 	int Health;
 
@@ -145,4 +148,6 @@ protected:
 	TSubclassOf<AWeapon> WeaponClass;
 	AWeapon* Weapon;
 	AItem_Inventory* inventroy;
+
+	FVector spawnLocation;
 };
