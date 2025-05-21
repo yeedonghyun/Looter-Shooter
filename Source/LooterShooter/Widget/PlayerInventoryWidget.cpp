@@ -132,6 +132,7 @@ void UPlayerInventoryWidget::UseItem(UInventorySlot* TargetSlot)
 	{
 		if (TargetSlot->SlotData.Type == EItemType::HEALING || TargetSlot->SlotData.Type == EItemType::ARMOR || TargetSlot->SlotData.Type == EItemType::AMMO)
 		{
+			bUsingItem = true;
 			TargetSlot->StartConsume();
 			OnItemUseRequested.Broadcast(TargetSlot->SlotData);
 		}
@@ -143,6 +144,8 @@ void UPlayerInventoryWidget::DropItem(UInventorySlot* TargetSlot)
 {
 	if (!bUsingItem)
 	{
+		bUsingItem = true;
+
 		OnDropRequested.Broadcast(TargetSlot->SlotData.Name);
 
 		TargetSlot->SlotData.bHaveItem = false;
@@ -248,6 +251,26 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 		}
 
 	}
+
+	else if (DraggingSlot->SlotData.Type == EItemType::AMMO && TargetSlot->SlotData.Type == EItemType::AMMO)
+	{
+		int NeedAmmo = DraggingSlot->SlotData.MaxAmount - DraggingSlot->SlotData.Amount;
+		int maxBringable = FMath::Min(NeedAmmo, TargetSlot->SlotData.Amount);
+
+		DraggingSlot->SlotData.Amount += maxBringable;
+		TargetSlot->SlotData.Amount -= maxBringable;
+
+		DraggingSlot->ToggleSlot();
+
+		if (TargetSlot->SlotData.Amount == 0)
+		{
+			TargetSlot->SlotData.bHaveItem = false;
+		}
+
+		TargetSlot->ToggleSlot();
+
+	}
+
 
 
 	else

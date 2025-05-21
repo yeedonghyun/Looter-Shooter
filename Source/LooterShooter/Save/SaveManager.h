@@ -48,4 +48,7 @@ public:
 	int32 PlayerHealth;
 	int32 PlayerArmor;
 
+	UPROPERTY(BlueprintReadWrite)
+	int32 money;
+
 };

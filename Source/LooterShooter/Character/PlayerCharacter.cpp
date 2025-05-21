@@ -148,6 +148,7 @@ void APlayerCharacter::BeginPlay()
         CrouchTimeline.SetTimelineFinishedFunc(CrouchTimeLineFinishDelegate);
     }
 
+
     if (TSubclassOf<UUserWidget> PlayerUIClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_PlayerUIWidget.BP_PlayerUIWidget_C'")))
     {
         PlayerUI = CreateWidget<UPlayerUIWidget>(GetWorld(), PlayerUIClass);
@@ -182,15 +183,6 @@ void APlayerCharacter::BeginPlay()
         if (HitAndHealIndicatorUI)
         {
             HitAndHealIndicatorUI->AddToViewport();
-        }
-    }
-
-    if (TSubclassOf<UUserWidget> KeyTutorialUIClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_KeyTutorialWidget.BP_KeyTutorialWidget_C'")))
-    {
-        KeyTutorialUI = CreateWidget<UKeyTutorialWidget>(GetWorld(), KeyTutorialUIClass);
-        if (KeyTutorialUI)
-        {
-            KeyTutorialUI->AddToViewport();
         }
     }
 
@@ -239,6 +231,16 @@ void APlayerCharacter::BeginPlay()
     }
 
     LoadInventoryClass();
+
+    if (TSubclassOf<UUserWidget> KeyTutorialUIClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_KeyTutorialWidget.BP_KeyTutorialWidget_C'")))
+    {
+        KeyTutorialUI = CreateWidget<UKeyTutorialWidget>(GetWorld(), KeyTutorialUIClass);
+        if (KeyTutorialUI)
+        {
+            KeyTutorialUI->AddToViewport();
+        }
+    }
+
 
     GetWorldTimerManager().SetTimer(HandStaminaTimerHandle, this, &APlayerCharacter::HandStaminaControl, timerRepeatTime, true);
     GetWorldTimerManager().SetTimer(StaminaTimerHandle, this, &APlayerCharacter::StaminaControl, timerRepeatTime, true);
@@ -1038,6 +1040,7 @@ void APlayerCharacter::UseItem()
     ItemUseDuration = 0.0f;
     PlayerUI->UpdateItemUsingTime(ItemUseDuration);
     PlayerUI->HideUsingItemTimer();
+    InventoryUI->bUsingItem = false;
 }
 
 bool APlayerCharacter::IsEscaping()

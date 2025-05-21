@@ -20,6 +20,8 @@ USaveManager::USaveManager()
 
 	PlayerHealth = 10;
 	PlayerArmor = 0;
+
+	//money = 0;
 }
 
 USaveManager* USaveManager::GetSaveInstance(const FString& SaveSlotName)
@@ -32,6 +34,28 @@ USaveManager* USaveManager::GetSaveInstance(const FString& SaveSlotName)
 	else
 	{
 		USaveManager* NewSave = Cast<USaveManager>(UGameplayStatics::CreateSaveGameObject(USaveManager::StaticClass()));
+
+
+		//NewSave->InventoryRowSize = 2;
+		//NewSave->InventoryColSize = 5;
+
+		//NewSave->bEquipInventory = false;
+		//NewSave->EquipInventoryName = "bag";
+
+		//NewSave->bEquipArmor = false;
+		//NewSave->EquipArmorName = "";
+
+		//NewSave->StorageRowSize = 15;
+		//NewSave->StorageColSize = 7;
+
+		//NewSave->PlayerHealth = 10;
+		//NewSave->PlayerArmor = 0;
+
+		NewSave->money = 0;
+
+
+
+
 		UGameplayStatics::SaveGameToSlot(NewSave, SaveSlotName, 0);
 		return NewSave;
 	}
@@ -45,5 +69,6 @@ void USaveManager::SaveDataSet(const FString& SaveSlotName, USaveManager* SaveGa
 void CreateNewSaveData(const FString& SaveSlotName)
 {
 	USaveManager* NewSave = Cast<USaveManager>(UGameplayStatics::CreateSaveGameObject(USaveManager::StaticClass()));
+
 	UGameplayStatics::SaveGameToSlot(NewSave, SaveSlotName, 0);
 }

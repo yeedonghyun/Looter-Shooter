@@ -8,7 +8,6 @@ void UPlayerUIWidget::NativeConstruct()
     if (LeftAmmo)
     {
         LeftAmmo->SetText(FText::FromString(TEXT("30")));
-        //LeftAmmo->SetText(FText::FromString(TEXT("30 / ")));
     }
 
     if (Magazine)
@@ -37,14 +36,12 @@ void UPlayerUIWidget::ShowCrosshairOnAimEnd()
 void UPlayerUIWidget::SetLeftAmmoText(int CurAmmo)
 {
     FString AmmoString = FString::FromInt(CurAmmo);
-    //FString AmmoString = FString::FromInt(CurAmmo) + TEXT(" / ");
     LeftAmmo->SetText(FText::FromString(AmmoString));
 }
 
 void UPlayerUIWidget::SetMagazineText(int Ammo)
 {
     FString AmmoString = FString::FromInt(Ammo);
-    //FString AmmoString = FString::FromInt(CurAmmo) + TEXT(" / ");
     Magazine->SetText(FText::FromString(AmmoString));
 }
 

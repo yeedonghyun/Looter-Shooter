@@ -32,9 +32,8 @@ void UKeyTutorialWidget::NativeConstruct()
         PC->bShowMouseCursor = false;
     }
 
-    SetVisibility(ESlateVisibility::Visible);
-    SetIsEnabled(false);
-    SetRenderOpacity(0.0f);
+    SetIsEnabled(true);
+    SetVisibility(ESlateVisibility::Hidden);
 }
 
 void UKeyTutorialWidget::OnAnyHovered()
@@ -62,9 +61,7 @@ void UKeyTutorialWidget::HideCanvasPanel()
         PC->bShowMouseCursor = false;
     }
 
-    SetVisibility(ESlateVisibility::Visible);
-    SetIsEnabled(false);
-    SetRenderOpacity(0.0f);
+    SetVisibility(ESlateVisibility::Hidden);
 }
 
 void UKeyTutorialWidget::ShowCanvasPanel()
@@ -75,6 +72,4 @@ void UKeyTutorialWidget::ShowCanvasPanel()
     }
 
     SetVisibility(ESlateVisibility::Visible);
-    SetIsEnabled(true);
-    SetRenderOpacity(1.0f);
 }

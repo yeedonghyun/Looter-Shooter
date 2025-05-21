@@ -56,6 +56,9 @@ public:
 
 	void HandleSlotActionRequest(UInventorySlot* TargetSlot, ESlotActionType type, bool bActive);
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot);
+
+	virtual void HandleSlotRightClickRequest(UInventorySlot* TargetSlot);
+
 	virtual void UseItem(UInventorySlot* TargetSlot);
 	virtual void DropItem(UInventorySlot* TargetSlot);
 	virtual void UpdateMagazine();
@@ -80,6 +83,8 @@ public:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 
+	//Inventorys-----------------------------------------------------------------//
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
 	UInventory* PlayerInventory;
 	TArray<UInventorySlot*> PlayerInventoryArray;
@@ -99,6 +104,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
 	UInventory* StorageInventory;
 	TArray<UInventorySlot*> StorageInventoryArray;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UInventory* ShopInventory;
+	TArray<UInventorySlot*> ShopInventoryArray;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UInventory* TradingInventory;
+	TArray<UInventorySlot*> TradingInventoryArray;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UInventorySlot* WeaponSlot;
+
+
+
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	UButton* SaveButton;
@@ -134,6 +154,8 @@ public:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	UTextBlock* AmmoCnt;
+
+	int32 money;
 
 
 };

@@ -53,7 +53,9 @@ enum class EUnderInventoryType : uint8
 	EQUIP UMETA(DisplayName = "EQUIP"),
 	WORLDBAG UMETA(DisplayName = "WORLDBAG"),
 	WORLDBOX UMETA(DisplayName = "WORLDBOX"),
-	STORAGE UMETA(DisplayName = "STORAGE")
+	STORAGE UMETA(DisplayName = "STORAGE"),
+	SHOP UMETA(DisplayName = "SHOP"),
+	TRADE UMETA(DisplayName = "TRADE")
 };
 
 

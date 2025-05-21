@@ -12,16 +12,9 @@ void UInventorySlot::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-
-	//UnderInventoryType = EUnderInventoryType::NONE;
-
-	//ProgressBar->SetVisibility(ESlateVisibility::Hidden);
-
 	bUseItem = false;
 	ItemUseDuration = 0.f;
 	ItemUseDelay = 1.f;
-	//bUnderWorldInventory = false;
-
 }
 
 void UInventorySlot::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -212,7 +205,11 @@ FReply UInventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-		if (SlotData.bHaveItem) 
+		if (UnderInventoryType == EUnderInventoryType::SHOP || UnderInventoryType == EUnderInventoryType::TRADE)
+		{
+		}
+
+		else if (SlotData.bHaveItem) 
 		{ 
 			Reply = UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton); 
 			RequestSlotAction(ESlotActionType::DRAG, true);

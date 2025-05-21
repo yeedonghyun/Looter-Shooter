@@ -10,7 +10,9 @@ UENUM(BlueprintType)
 enum class EInventoryType : uint8
 {
 	BAG UMETA(DisplayName = "BAG"),
-	BOX UMETA(DisplayName = "BOX")
+	BOX UMETA(DisplayName = "BOX"),
+	TRADING UMETA(DisplayName = "TRADING"),
+	SHOP UMETA(DisplayName = "SHOP")
 };
 
 UCLASS()

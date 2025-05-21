@@ -92,6 +92,42 @@ void UInventoryWidgetBase::InitWidget()
 		}
 	}
 
+	if (ShopInventory)
+	{
+		CreateInventory(ShopInventoryArray, ShopInventory->Grid, 2, 5, EUnderInventoryType::SHOP);
+
+		TArray<FString> itemList = { "Ammo1" , "Armor1" ,"Armor3","Heal1" ,"Heal2" };
+
+		for (int i = 0; i < 5; i++)
+		{
+			FString name = itemList[i];
+			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *name, *name);
+
+			if (TSubclassOf<AItemBase> ItemClass = LoadClass<AItemBase>(nullptr, *FullPath))
+			{
+				AItemBase* DefaultObject = ItemClass->GetDefaultObject<AItemBase>();
+
+				if (DefaultObject)
+				{
+					ShopInventoryArray[i]->SetSlotFromItem(DefaultObject->ItemData);
+				}
+			}
+		}
+
+
+
+	}
+
+	if (TradingInventory)
+	{
+		CreateInventory(TradingInventoryArray, TradingInventory->Grid, 10, 5, EUnderInventoryType::TRADE);
+	}
+
+
+
+
+
+
 
 	if (EquipInventory)
 	{
@@ -110,6 +146,14 @@ void UInventoryWidgetBase::InitWidget()
 	if (WorldBoxInventory)
 	{
 		WorldBoxInventory->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	money = SaveData->money;
+
+	if (WeaponSlot)
+	{
+		WeaponSlot->UnderInventoryType = EUnderInventoryType::NONE;
+		WeaponSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
 	}
 }
 
@@ -201,17 +245,24 @@ void UInventoryWidgetBase::HandleSlotActionRequest(UInventorySlot* TargetSlot, E
 
 	case ESlotActionType::USE:
 
-		if (bOpenRightClickOption)
+		if (InventoryWidgetType == EInventoryWidgetType::STORAGE)
 		{
-			bOpenRightClickOption = false;
-			bClickDetectionEnabled = false;
-			RightClickOption->RemoveFromParent();
+			HandleSlotRightClickRequest(TargetSlot);
 		}
 
-		DedicateSlot = TargetSlot;
+		else
+		{
+			if (bOpenRightClickOption)
+			{
+				bOpenRightClickOption = false;
+				bClickDetectionEnabled = false;
+				RightClickOption->RemoveFromParent();
+			}
 
-		CreateClickOption();
+			DedicateSlot = TargetSlot;
 
+			CreateClickOption();
+		}
 
 
 		break;
@@ -284,6 +335,11 @@ void UInventoryWidgetBase::HandleSwapRequest(UInventorySlot* DraggingSlot, UInve
 
 }
 
+void UInventoryWidgetBase::HandleSlotRightClickRequest(UInventorySlot* TargetSlot)
+{
+}
+
+
 void UInventoryWidgetBase::UseItem(UInventorySlot* TargetSlot)
 {
 }
@@ -299,6 +355,8 @@ void UInventoryWidgetBase::UpdateMagazine()
 
 void UInventoryWidgetBase::SaveInventories()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Save")));
+
 	USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
 
 	if (PlayerInventory)
@@ -333,6 +391,8 @@ void UInventoryWidgetBase::SaveInventories()
 		SaveData->StorageItems = tmp;
 	}
 	
+	SaveData->money = money;
+
 	USaveManager::SaveDataSet("Save1", SaveData);
 }
 
