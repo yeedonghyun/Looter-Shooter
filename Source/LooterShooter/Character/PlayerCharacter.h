@@ -12,7 +12,7 @@
 #include "Components/CapsuleComponent.h"
 #include "../Widget/PlayerUIWidget.h"
 #include "../Gun/Weapon.h"
-#include "../Item/Item_banage.h"
+#include "../Item/ItemBase.h"
 #include "../Widget/PlayerInventoryWidget.h"
 #include "../Widget/FadeInAndOutWidget.h"
 #include "../Widget/HitAndHealIndicatorWidget.h"
@@ -41,6 +41,11 @@ public:
 	}; 
 
 	PlayerState curState;
+
+public:
+	virtual void Jump() override;
+	virtual void Crouch(bool bClientSimulation = false) override;
+	virtual void UnCrouch(bool bClientSimulation = false) override;
 
 protected:
 	virtual void BeginPlay() override;

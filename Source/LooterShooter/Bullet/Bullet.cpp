@@ -12,7 +12,7 @@ ABullet::ABullet()
 	damage = 20;
 
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionMesh"));
-	CollisionSphere->InitSphereRadius(15.0f);
+	CollisionSphere->InitSphereRadius(5.0f);
 	RootComponent = CollisionSphere;
 }
 

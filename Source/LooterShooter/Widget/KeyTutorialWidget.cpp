@@ -38,8 +38,6 @@ void UKeyTutorialWidget::NativeConstruct()
 
 void UKeyTutorialWidget::OnAnyHovered()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("aaaaa")));
-
     for (auto& Elem : KeyInfoMap)
     {
         if (Elem.Key->IsHovered())

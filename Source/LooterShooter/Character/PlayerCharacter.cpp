@@ -100,6 +100,7 @@ APlayerCharacter::APlayerCharacter() {
     }
 }
 
+
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -359,13 +360,27 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
     bool bCollision = GetWorld()->LineTraceSingleByChannel(HitOut, Start, EndPoint, ECC_WorldStatic, TraceParams);
     AActor* HitActor = HitOut.GetActor();
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(HitActor);
+    AWeapon* DropWeapon = Cast<AWeapon>(HitActor);
 
     const bool bIsItem = HitActor && HitActor->IsA<AItemBase>();
     const bool bIsDeadEnemy = Enemy && Enemy->GetCurrentState() == EEnemyState::Dead;
+    const bool bIsWeaponDroped = DropWeapon && DropWeapon->bIsDrroped;
 
-    if (bCollision && (bIsItem || bIsDeadEnemy))
+    if (bCollision && (bIsItem || bIsDeadEnemy || bIsWeaponDroped))
     {
-        AimedItem = bIsItem ? Cast<AItemBase>(HitActor) : Enemy->GetInventory();
+		if (bIsItem)
+		{
+            AimedItem = Cast<AItemBase>(HitActor);
+		}
+		else if (bIsDeadEnemy)
+		{
+            AimedItem = Enemy->GetInventory();
+		}
+		else if (bIsWeaponDroped)
+		{
+            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("123124124")));
+            AimedItem = DropWeapon->GunItem;
+		}
 
         if (PlayerUI)
         {
@@ -518,11 +533,7 @@ void APlayerCharacter::Jump(const FInputActionValue& InputValue)
         return;
     }
 
-    curStamina = FMath::Max(curStamina - 0.2f, 0.0f);
-    PlayerUI->SetStamina(curStamina);
-
-    Super::Jump();
-    curState = PlayerState::JUMP;
+    Jump();
 }
 
 void APlayerCharacter::Reload(const FInputActionValue& InputValue)
@@ -687,18 +698,12 @@ void APlayerCharacter::Crouch(const FInputActionValue& InputValue)
         UnRun(InputValue);
     }
 
-    CrouchTimeline.Play();
-    RunTimeline.Reverse();
-    GetCharacterMovement()->MaxWalkSpeed = 200;
-    bCrouch = true;
+    Crouch();
 }
 
 void APlayerCharacter::UnCrouch(const FInputActionValue& InputValue)
 {
-    CrouchTimeline.Reverse();
-    GetCharacterMovement()->MaxWalkSpeed = 300;
-    curState = PlayerState::IDLE;
-    bCrouch = false;
+    UnCrouch();
 }
 
 void APlayerCharacter::Aim(const FInputActionValue& InputValue)
@@ -768,6 +773,31 @@ void APlayerCharacter::AddRecoil()
     else {
         TargetRecoilOffset += FVector2D(RecoilPitch, RecoilYaw);
     }
+}
+
+void APlayerCharacter::Jump()
+{
+    curStamina = FMath::Max(curStamina - 0.2f, 0.0f);
+    PlayerUI->SetStamina(curStamina);
+
+    Super::Jump();
+    curState = PlayerState::JUMP;
+}
+
+void APlayerCharacter::Crouch(bool bClientSimulation)
+{
+    CrouchTimeline.Play();
+    RunTimeline.Reverse();
+    GetCharacterMovement()->MaxWalkSpeed = 200;
+    bCrouch = true;
+}
+
+void APlayerCharacter::UnCrouch(bool bClientSimulation)
+{
+    CrouchTimeline.Reverse();
+    GetCharacterMovement()->MaxWalkSpeed = 300;
+    curState = PlayerState::IDLE;
+    bCrouch = false;
 }
 
 void APlayerCharacter::ResetShoot()
@@ -1095,9 +1125,9 @@ void APlayerCharacter::UpdateMagazine(int maxAmmo)
 void APlayerCharacter::GetPlayerAmmoData()
 {
     //LoadSaveData
-    //EquipAmmoArr ¾÷µ¥ÀÌÆ®
+    //EquipAmmoArr ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®
     curAmmoIdx = 0;
-    //ÇÃ·¹ÀÌ¾î UI ¾÷µ¥ÀÌÆ®
+    //ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ UI ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®
 }
 
 void APlayerCharacter::ChangeAmmo()
@@ -1112,6 +1142,6 @@ void APlayerCharacter::ChangeAmmo()
         curAmmoIdx += 1;
     }
 
-    //Åº¾à »õ·Î °è»ê?
-    //ÇÃ·¹ÀÌ¾î UI ¾÷µ¥ÀÌÆ®
+    //Åºï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½?
+    //ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ UI ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®
 }

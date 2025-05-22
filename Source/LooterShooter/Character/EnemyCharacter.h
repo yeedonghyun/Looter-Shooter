@@ -63,7 +63,6 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	int Health;
 
-	void CreateInventoryItem(FString name);
 
 	EEnemyState GetCurrentState() { return CurrentState; }
 	AItem_Inventory* GetInventory();
@@ -117,7 +116,10 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	AActor* GetWeapon() { return Weapon; }
-	
+
+	UFUNCTION(BlueprintCallable)
+	void OnPhysicsSimulate();
+
 	void CheckRecentlyDetectPlayer();
 	void FreezeRagdoll();
 

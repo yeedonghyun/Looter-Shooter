@@ -5,7 +5,6 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
-#include "BehaviorTree/BlackboardComponent.h"
 #include "PhysicsEngine/BodyInstance.h"
 
 AEnemyCharacter::AEnemyCharacter()
@@ -175,6 +174,7 @@ bool AEnemyCharacter::IsDetectPlayer()
     return true;
 }
 
+
 void AEnemyCharacter::CheckRecentlyDetectPlayer()
 {
     if (!bDetectPlayer && bRecentDetectPlayer) {
@@ -254,13 +254,19 @@ void AEnemyCharacter::RotateToTarget(AActor* TargetActor, float RotationSpeed)
     if (!TargetActor) return;
 
     FVector Direction = (TargetActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-    FRotator TargetRotation = Direction.Rotation();
+    FRotator TargetRotation = Direction.Rotation(); 
 
     FRotator CurrentRotation = GetActorRotation();
-
     FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), RotationSpeed);
 
-    SetActorRotation(NewRotation);
+    SetActorRotation(FRotator(0.f, NewRotation.Yaw, 0.f));
+
+    if (SkeletalMeshComponent)
+    {
+        FRotator MeshRotation = SkeletalMeshComponent->GetRelativeRotation();
+        MeshRotation.Pitch = FMath::FInterpTo(MeshRotation.Pitch, TargetRotation.Pitch, GetWorld()->GetDeltaSeconds(), RotationSpeed);
+        SkeletalMeshComponent->SetRelativeRotation(MeshRotation);
+    }
 }
 
 bool AEnemyCharacter::Fire()
@@ -268,22 +274,32 @@ bool AEnemyCharacter::Fire()
     if (!bDetectPlayer || bShoot)
         return false;
 
-    if (BulletClass && Weapon) {
+    if (BulletClass && Weapon && TargetPlayer)
+    {
         FVector MuzzleLocation = Weapon->GetEndPointLocation();
+
+        FVector PlayerLocation = TargetPlayer->GetActorLocation();
+
+        FRotator AimRotation = (PlayerLocation - MuzzleLocation).Rotation();
 
         float RandomYaw = FMath::RandRange(-5.0f, 5.0f);
         float RandomPitch = FMath::RandRange(-3.0f, 3.0f);
+        AimRotation.Yaw += RandomYaw;
+        AimRotation.Pitch += RandomPitch;
 
-        FRotator RandomizedRotation = GetActorRotation();
-        RandomizedRotation.Yaw += RandomYaw;
-        RandomizedRotation.Pitch += RandomPitch;
-
-        GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, RandomizedRotation);
+        GetWorld()->SpawnActor<ABullet>(
+            BulletClass,
+            MuzzleLocation,
+            AimRotation
+        );
     }
 
     bShoot = true;
-
-    GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &AEnemyCharacter::ResetShoot, FireRate, false);
+    GetWorldTimerManager().SetTimer(
+        ShootResetTimerHandle,
+        this, &AEnemyCharacter::ResetShoot,
+        FireRate, false
+    );
 
     return true;
 }
@@ -301,23 +317,12 @@ void AEnemyCharacter::ApplyDamage(int DamageAmount)
     bIsDead = true;
     bDetectPlayer = false;
 
-    UCapsuleComponent* Capsule = GetCapsuleComponent();
-    Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-    if (SkeletalMeshComponent)
+    if (Weapon)
     {
-        SkeletalMeshComponent->bBlendPhysics = true;
-        SkeletalMeshComponent->bPauseAnims = true;
-
-        SkeletalMeshComponent->SetSimulatePhysics(true);
-        SkeletalMeshComponent->SetAllBodiesSimulatePhysics(true);
-        SkeletalMeshComponent->WakeAllRigidBodies();
-
-        SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-        SkeletalMeshComponent->SetCollisionObjectType(ECC_PhysicsBody);
-        SkeletalMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
-        SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+        Weapon->OnPhysicsSimulate();
     }
+
+    OnPhysicsSimulate();
 
     if (AAIController* AIC = Cast<AAIController>(GetController()))
     {
@@ -336,38 +341,46 @@ void AEnemyCharacter::ApplyDamage(int DamageAmount)
 
 void AEnemyCharacter::FreezeRagdoll()
 {
-    if (!SkeletalMeshComponent) return;
+    if (SkeletalMeshComponent)
+    {
+        SkeletalMeshComponent->SetAllPhysicsLinearVelocity(FVector::ZeroVector, false);
+        SkeletalMeshComponent->SetAllPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false);
 
-    SkeletalMeshComponent->SetAllPhysicsLinearVelocity(FVector::ZeroVector, false);
-    SkeletalMeshComponent->SetAllPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false);
+        SkeletalMeshComponent->SetSimulatePhysics(false);
 
-    SkeletalMeshComponent->SetSimulatePhysics(false);
+        SkeletalMeshComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
 
-    SkeletalMeshComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
-
-    SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-    SkeletalMeshComponent->bPauseAnims = true;
-    SkeletalMeshComponent->SetComponentTickEnabled(false);
-}
-
-void AEnemyCharacter::CreateInventoryItem(FString name)
-{
-    //FVector SpawnLocation = FVector(-17307.0, 3811.0, 1222.100393);
-    //FRotator SpawnRotation = FRotator(22.833177, 96.678432, 5.169551);
-
-    FVector SpawnLocation = GetActorLocation();
-    FRotator SpawnRotation = GetActorRotation();
-
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CreateInventoryItem")));
-
-    if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_box36.BP_Item_box36_C'"))) {
-        
-        GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CreateInventoryItem111")));
-        AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, SpawnLocation, SpawnRotation);
+        SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+        SkeletalMeshComponent->bPauseAnims = true;
+        SkeletalMeshComponent->SetComponentTickEnabled(false);
     }
+
+    if (Weapon)
+        Weapon->Freeze();
 }
 
 AItem_Inventory* AEnemyCharacter::GetInventory()
 {
     return inventroy;
+}
+
+void AEnemyCharacter::OnPhysicsSimulate()
+{
+    UCapsuleComponent* Capsule = GetCapsuleComponent();
+    Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    if (SkeletalMeshComponent)
+    {
+        SkeletalMeshComponent->bBlendPhysics = true;
+        SkeletalMeshComponent->bPauseAnims = true;
+
+        SkeletalMeshComponent->SetSimulatePhysics(true);
+        SkeletalMeshComponent->SetAllBodiesSimulatePhysics(true);
+        SkeletalMeshComponent->WakeAllRigidBodies();
+
+        SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+        SkeletalMeshComponent->SetCollisionObjectType(ECC_PhysicsBody);
+        SkeletalMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+        SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+    }
 }
