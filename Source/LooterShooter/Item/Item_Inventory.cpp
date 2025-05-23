@@ -21,7 +21,7 @@ void AItem_Inventory::BeginPlay()
 
     if (InventoryType == EInventoryType::BOX)
     {
-        TArray<FString> itemList = { "Ammo1" , "Armor1" ,"Armor3" ,"bag48" ,"Heal1" ,"Heal2" };
+        TArray<FString> itemList = { "Ammo1" , "Armor1" ,"Armor3" ,"bag48" ,"Syringe" ,"Medikit" };
         int randCnt = FMath::RandRange(0, 4);
         int cnt = 0;
 

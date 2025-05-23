@@ -119,10 +119,6 @@ public:
 
 
 
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	UButton* SaveButton;
-
 	UTooltip* SlotToolTip;
 
 

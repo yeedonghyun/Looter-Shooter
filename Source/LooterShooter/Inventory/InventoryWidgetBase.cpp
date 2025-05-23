@@ -26,11 +26,6 @@ void UInventoryWidgetBase::NativeConstruct()
 		}
 	}
 
-	if (this->SaveButton)
-	{
-		this->SaveButton->OnClicked.AddDynamic(this, &UInventoryWidgetBase::SaveInventories);
-	}
-
 	ToggleWarningMessage(false);
 }
 
@@ -64,6 +59,11 @@ void UInventoryWidgetBase::InitWidget()
 
 	if (EquipInventory)
 	{
+		EquipInventory->ItemSlot->UnderInventoryType = EUnderInventoryType::EQUIP;
+		EquipInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UInventoryWidgetBase::HandleSwapRequest);
+		EquipInventory->ItemSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+
+
 		if (SaveData->bEquipInventory)
 		{
 			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
@@ -80,6 +80,8 @@ void UInventoryWidgetBase::InitWidget()
 				SetArrayData(EquipInventoryArray, SaveData->EquipInventoryItems);
 			}
 		}
+
+
 	}
 
 	if (StorageInventory)
@@ -96,7 +98,7 @@ void UInventoryWidgetBase::InitWidget()
 	{
 		CreateInventory(ShopInventoryArray, ShopInventory->Grid, 2, 5, EUnderInventoryType::SHOP);
 
-		TArray<FString> itemList = { "Ammo1" , "Armor1" ,"Armor3","Heal1" ,"Heal2" };
+		TArray<FString> itemList = { "Ammo1" , "Armor1" ,"Armor3","Syringe" ,"Medikit" };
 
 		for (int i = 0; i < 5; i++)
 		{
@@ -114,8 +116,6 @@ void UInventoryWidgetBase::InitWidget()
 			}
 		}
 
-
-
 	}
 
 	if (TradingInventory)
@@ -129,12 +129,6 @@ void UInventoryWidgetBase::InitWidget()
 
 
 
-	if (EquipInventory)
-	{
-		EquipInventory->ItemSlot->UnderInventoryType = EUnderInventoryType::EQUIP;
-		EquipInventory->ItemSlot->OnSwapRequested.AddUObject(this, &UInventoryWidgetBase::HandleSwapRequest);
-		EquipInventory->ItemSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
-	}
 
 	if (WorldInventory)
 	{
@@ -154,6 +148,24 @@ void UInventoryWidgetBase::InitWidget()
 	{
 		WeaponSlot->UnderInventoryType = EUnderInventoryType::NONE;
 		WeaponSlot->IMG_Item->SetVisibility(ESlateVisibility::Hidden);
+
+		if (SaveData->bEquipWeapon)
+		{
+			FString name = SaveData->EquipWeaponName;
+			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *name, *name);
+
+			if (TSubclassOf<AItemBase> ItemClass = LoadClass<AItemBase>(nullptr, *FullPath))
+			{
+				AItemBase* DefaultObject = ItemClass->GetDefaultObject<AItemBase>();
+
+				if (DefaultObject)
+				{
+					WeaponSlot->SetSlotFromItem(DefaultObject->ItemData);
+				}
+			}
+
+		}
+
 	}
 }
 
@@ -371,13 +383,25 @@ void UInventoryWidgetBase::SaveInventories()
 
 	if (EquipInventory)
 	{
-		TArray<FSlotData> tmp;
-		for (int i = 0; i < EquipInventoryArray.Num(); i++)
+		SaveData->bEquipInventory = bHaveEquipInventory;
+
+		if (bHaveEquipInventory)
 		{
-			tmp.Add(EquipInventoryArray[i]->SlotData);
+			SaveData->EquipInventoryName = EquipInventory->ItemSlot->SlotData.Name;
+
+			TArray<FSlotData> tmp;
+			for (int i = 0; i < EquipInventoryArray.Num(); i++)
+			{
+				tmp.Add(EquipInventoryArray[i]->SlotData);
+			}
+
+			SaveData->EquipInventoryItems = tmp;
 		}
 
-		SaveData->EquipInventoryItems = tmp;
+		else
+		{
+			SaveData->EquipInventoryName = "";
+		}
 	}
 
 	if (StorageInventory)

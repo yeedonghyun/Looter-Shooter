@@ -41,10 +41,10 @@ public:
 
 
 	UPROPERTY(meta = (BindWidget))
-		UButton* ReturnMain;
+		UButton* SelectMap;
 
 	UFUNCTION(BlueprintCallable)
-	void OnReturnMainButtonClicked();
+	void OnSelectMapButtonClicked();
 
 	void MoveItemTradeInventory(UInventorySlot* TargetSlot);
 
@@ -89,5 +89,10 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* Money;
 
+	UPROPERTY(meta = (BindWidget))
+	UButton* Back;
+
+	UFUNCTION(BlueprintCallable)
+	void OnBackButtonClicked();
 
 };

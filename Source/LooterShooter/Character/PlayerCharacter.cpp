@@ -108,6 +108,12 @@ void APlayerCharacter::BeginPlay()
     PlayerController = GetWorld()->GetFirstPlayerController();
     Camera = PlayerController->PlayerCameraManager;
 
+    USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+    Health = SaveData->PlayerHealth;
+    Armor = SaveData->PlayerArmor;
+
+
+
     for (UActorComponent* Child : GetComponents())
     {
         if (USceneComponent* SceneChild = Cast<USceneComponent>(Child))

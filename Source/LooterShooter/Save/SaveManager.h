@@ -27,28 +27,43 @@ public:
 
 	static void SaveDataSet(const FString& SaveSlotName, USaveManager* SaveGameInstance);
 
+	UPROPERTY(BlueprintReadWrite)
 	int32 InventoryRowSize;
+	UPROPERTY(BlueprintReadWrite)
 	int32 InventoryColSize;
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FSlotData> InventoryItems;
 
+	UPROPERTY(BlueprintReadWrite)
 	bool bEquipInventory;
+	UPROPERTY(BlueprintReadWrite)
 	FString EquipInventoryName;
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FSlotData> EquipInventoryItems;
 
-	bool bEquipArmor;
-	FString EquipArmorName;
-
+	UPROPERTY(BlueprintReadWrite)
 	int32 StorageRowSize;
+	UPROPERTY(BlueprintReadWrite)
 	int32 StorageColSize;
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FSlotData> StorageItems;
 
-	int32 PlayerHealth;
-	int32 PlayerArmor;
+	UPROPERTY(BlueprintReadWrite)
+	bool bEquipWeapon;
+	UPROPERTY(BlueprintReadWrite)
+	FString EquipWeaponName;
 
+
+
+
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerHealth;
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerArmor;
 	UPROPERTY(BlueprintReadWrite)
 	int32 money;
 
+
+	//bool bEquipArmor;
+	//FString EquipArmorName;
 };

@@ -6,20 +6,20 @@
 
 USaveManager::USaveManager()
 {
-	InventoryRowSize = 2;
-	InventoryColSize = 5;
+	//InventoryRowSize = 2;
+	//InventoryColSize = 5;
 
-	bEquipInventory = false;
-	EquipInventoryName = "bag";
+	//bEquipInventory = false;
+	//EquipInventoryName = "bag";
 
-	bEquipArmor = false;
-	EquipArmorName = "";
+	//bEquipArmor = false;
+	//EquipArmorName = "";
 
-	StorageRowSize = 15;
-	StorageColSize = 7;
+	//StorageRowSize = 15;
+	//StorageColSize = 7;
 
-	PlayerHealth = 10;
-	PlayerArmor = 0;
+	//PlayerHealth = 10;
+	//PlayerArmor = 0;
 
 	//money = 0;
 }
@@ -36,24 +36,24 @@ USaveManager* USaveManager::GetSaveInstance(const FString& SaveSlotName)
 		USaveManager* NewSave = Cast<USaveManager>(UGameplayStatics::CreateSaveGameObject(USaveManager::StaticClass()));
 
 
-		//NewSave->InventoryRowSize = 2;
-		//NewSave->InventoryColSize = 5;
+		NewSave->InventoryRowSize = 2;
+		NewSave->InventoryColSize = 5;
 
-		//NewSave->bEquipInventory = false;
-		//NewSave->EquipInventoryName = "bag";
+		NewSave->bEquipInventory = false;
+		NewSave->EquipInventoryName = "";
 
-		//NewSave->bEquipArmor = false;
-		//NewSave->EquipArmorName = "";
+		NewSave->bEquipWeapon = true;
+		NewSave->EquipWeaponName = "Weapon1";
 
-		//NewSave->StorageRowSize = 15;
-		//NewSave->StorageColSize = 7;
+		NewSave->StorageRowSize = 15;
+		NewSave->StorageColSize = 7;
 
-		//NewSave->PlayerHealth = 10;
-		//NewSave->PlayerArmor = 0;
+		NewSave->PlayerHealth = 100;
+		NewSave->PlayerArmor = 0;
+		NewSave->money = 100;
 
-		NewSave->money = 0;
-
-
+		//스토리지 총알 180발
+		// 나머지 1개씩
 
 
 		UGameplayStatics::SaveGameToSlot(NewSave, SaveSlotName, 0);

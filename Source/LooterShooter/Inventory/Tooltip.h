@@ -39,4 +39,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		bool bShouldFollowMouse = false;
 
+
+		UFUNCTION(BlueprintPure, Category = "Item")
+		static FString GetItemTypeAsString_BP(EItemType ItemType);
+
 };

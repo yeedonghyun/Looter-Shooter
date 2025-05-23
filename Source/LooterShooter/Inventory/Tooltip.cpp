@@ -33,14 +33,65 @@ void UTooltip::UpdateTexts(FSlotData data, bool bActive)
 		{
 			SetPositionInViewport(MousePosition + FVector2D(15.0f, 0.0f));
 		}
+
+		
 	
-		Type->SetText(FText::AsNumber(data.Weight));
+		Type->SetText(FText::FromString(GetItemTypeAsString_BP(data.Type)));
 		Name->SetText(FText::FromString(*data.Name));
 		Weight->SetText(FText::AsNumber(data.Weight));
-		Value->SetText(FText::AsNumber(data.Value));
+		//Value->SetText(FText::AsNumber(data.Value));
+		Value->SetText(FText::Format(FText::FromString("$ {0}"), FText::AsNumber(data.Value)));
+
 		Information->SetText(FText::FromString(*data.Name));
+
+		FString Finfo = "";
+
+		switch (data.Type)
+		{
+		case EItemType::AMMO :
+			Information->SetText(FText::Format(FText::FromString("Add player ammo {0} "), FText::AsNumber(data.Amount)));
+			break;
+
+		case EItemType::STUFF:
+			break;
+
+		case EItemType::ARMOR:
+			Information->SetText(FText::Format(FText::FromString("Add player armor {0} "), FText::AsNumber(data.Value)));
+			break;
+
+		case EItemType::HEALING:
+			Information->SetText(FText::Format(FText::FromString("Add player health {0} "), FText::AsNumber(data.Value)));
+			break;
+
+		case EItemType::INVENTORY:
+			Information->SetText(FText::FromString("Equipable bag"));
+			break;
+
+		case EItemType::WEAPON:
+			Information->SetText(FText::FromString("Equipable weapon"));
+			break;
+
+		default:
+			break;
+		}
+
+
+
+
+
+
+
+
+
 		bShouldFollowMouse = true;
 		SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
+FString UTooltip::GetItemTypeAsString_BP(EItemType ItemType)
+{
+	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EItemType"), true);
+	if (!EnumPtr) return FString("Invalid");
+
+	return EnumPtr->GetDisplayNameTextByValue((int64)ItemType).ToString();
+}

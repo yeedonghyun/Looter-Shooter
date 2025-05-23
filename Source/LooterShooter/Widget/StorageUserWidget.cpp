@@ -15,10 +15,16 @@ void UStorageUserWidget::NativeConstruct()
 
 	tradeType = ETradeType::NONE;
 
-	if (ReturnMain)
+	if (SelectMap)
 	{
-		ReturnMain->OnClicked.AddDynamic(this, &UStorageUserWidget::OnReturnMainButtonClicked);
+		SelectMap->OnClicked.AddDynamic(this, &UStorageUserWidget::OnSelectMapButtonClicked);
 	}
+
+	if (Back)
+	{
+		Back->OnClicked.AddDynamic(this, &UStorageUserWidget::OnBackButtonClicked);
+	}
+
 
 	if (Buy)
 	{
@@ -165,6 +171,7 @@ void UStorageUserWidget::OnApplyButtonClicked()
 
 		money -= tradingCost;
 		tradingCost = 0;
+		SaveInventories();
 
 		break;
 	case ETradeType::SELL:
@@ -183,6 +190,7 @@ void UStorageUserWidget::OnApplyButtonClicked()
 
 		money += tradingCost;
 		tradingCost = 0;
+		SaveInventories();
 
 		break;
 	default:
@@ -193,22 +201,12 @@ void UStorageUserWidget::OnApplyButtonClicked()
 }
 
 
-void UStorageUserWidget::OnReturnMainButtonClicked()
-{
-	this->RemoveFromParent();
-
-	if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_SelectMapUserWidget.BP_SelectMapUserWidget_C'")))
-	{
-		if (UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass))
-		{
-			SelectMapWidget->AddToViewport();
-		}
-	}
-}
-
 
 void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
+
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("SWAP")));
+
 	if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
 		UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
@@ -233,13 +231,40 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 		}
 
 		SwapSlotData(DraggingSlot, TargetSlot);
-		//std::swap(WorldInventoryArray, EquipInventoryArray);
-
+		//std::swap(WorldBagInventoryArray, EquipInventoryArray);
 	}
 
 	else if (DraggingSlot->SlotType != EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
-		//if (From->SlotData.Type == EItemType::BAG)
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("TargetSlotINVENTORY")));
+
+
+		bool bHaveInventoryItem = false;
+
+		UItemInventory* inven = TargetSlot->GetTypedOuter<UItemInventory>();
+
+		if (inven->InventoryName == "Equip")
+		{
+			for (int32 i = 0; i < EquipInventoryArray.Num(); i++)
+			{
+				if (EquipInventoryArray[i]->SlotData.bHaveItem)
+				{
+					bHaveInventoryItem = true;
+					break;
+				}
+			}
+		}
+
+		if (bHaveInventoryItem)
+		{
+			if (InventoryWarningMessage)
+			{
+				ShowWarningMessage("Have Item in Bag");
+			}
+
+		}
+
+		else
 		{
 			UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
 			UVerticalBox* ToGrid = ToInventory->Grid;
@@ -247,12 +272,21 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 			ToGrid->ClearChildren();
 			SwapSlotData(DraggingSlot, TargetSlot);
 
+			//if (ToInventory->ItemSlot->UnderInventoryType == EUnderInventoryType::WORLDBAG)
+			//{
+			//	DeleteWorldInventory();
+			//}
 
+			bHaveEquipInventory = false;
 		}
+
 	}
 
 	else if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType != EItemType::INVENTORY)
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("DraggingSlotINVENTORY")));
+
+
 		if (TargetSlot->SlotData.Type == EItemType::INVENTORY)
 		{
 			UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
@@ -260,29 +294,41 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 			TArray<UWidget*> FromChildren = FromGrid->GetAllChildren();
 			FromGrid->ClearChildren();
 
-			USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+			SwapSlotData(DraggingSlot, TargetSlot);
 
-			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
+			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *DraggingSlot->SlotData.Name, *DraggingSlot->SlotData.Name);
 
-			if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
+			if (TSubclassOf<AItem_Inventory> ItemClass = LoadClass<AItem_Inventory>(nullptr, *FullPath))
 			{
-				AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
+				AItem_Inventory* DefaultBag = ItemClass->GetDefaultObject<AItem_Inventory>();
 				CreateInventory(EquipInventoryArray, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height, EUnderInventoryType::EQUIP);
-				SwapSlotData(DraggingSlot, TargetSlot);
+				//EquipInventory->ItemSlot->SetSlotFromItem(DefaultBag->ItemData);
+				bHaveEquipInventory = true;
 			}
 		}
 
-
 	}
 
-
-	else
+	else if (DraggingSlot->SlotData.Type == EItemType::AMMO && TargetSlot->SlotData.Type == EItemType::AMMO)
 	{
-		SwapSlotData(DraggingSlot, TargetSlot);
+		int NeedAmmo = DraggingSlot->SlotData.MaxAmount - DraggingSlot->SlotData.Amount;
+		int maxBringable = FMath::Min(NeedAmmo, TargetSlot->SlotData.Amount);
+
+		DraggingSlot->SlotData.Amount += maxBringable;
+		TargetSlot->SlotData.Amount -= maxBringable;
+
+		DraggingSlot->ToggleSlot();
+
+		if (TargetSlot->SlotData.Amount == 0)
+		{
+			TargetSlot->SlotData.bHaveItem = false;
+		}
+
+		TargetSlot->ToggleSlot();
+
 	}
 
-
-
+	SaveInventories();
 }
 
 
@@ -451,4 +497,41 @@ void UStorageUserWidget::UpdateMoney()
 
 	FString moneyString = TEXT(" $ ") + FString::FromInt(money);
 	Money->SetText(FText::FromString(moneyString));
+}
+
+
+void UStorageUserWidget::OnSelectMapButtonClicked()
+{
+	if (!WeaponSlot->SlotData.bHaveItem)
+	{
+		return;
+	}
+
+
+
+	this->RemoveFromParent();
+
+	if (TSubclassOf<UUserWidget> SelectMapWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_SelectMapUserWidget.BP_SelectMapUserWidget_C'")))
+	{
+		if (UUserWidget* SelectMapWidget = CreateWidget<UUserWidget>(GetWorld(), SelectMapWidgetClass))
+		{
+			SelectMapWidget->AddToViewport();
+		}
+	}
+}
+
+
+
+void UStorageUserWidget::OnBackButtonClicked()
+{
+	this->RemoveFromParent();
+
+	if (TSubclassOf<UUserWidget> StorageWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_MainMenuUserWidget.BP_MainMenuUserWidget_C'")))
+	{
+		UUserWidget* StorageWidget = CreateWidget<UUserWidget>(GetWorld(), StorageWidgetClass);
+		if (StorageWidget)
+		{
+			StorageWidget->AddToViewport();
+		}
+	}
 }

@@ -149,7 +149,7 @@ void UPlayerUIWidget::UpdateTimerUI(float Time)
 
     if (GameTimer)
     {
-        GameTimer->SetText(FText::FromString(FormattedTime));
+        GameTimer->SetText(FText::FromString(""));
     }
 
 }

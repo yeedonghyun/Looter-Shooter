@@ -135,6 +135,8 @@ void UPlayerInventoryWidget::UseItem(UInventorySlot* TargetSlot)
 			bUsingItem = true;
 			TargetSlot->StartConsume();
 			OnItemUseRequested.Broadcast(TargetSlot->SlotData);
+
+			SaveInventories();
 		}
 	}
 }
@@ -150,6 +152,8 @@ void UPlayerInventoryWidget::DropItem(UInventorySlot* TargetSlot)
 
 		TargetSlot->SlotData.bHaveItem = false;
 		TargetSlot->ToggleSlot();
+
+		SaveInventories();
 	}
 }
 
@@ -188,6 +192,9 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 
 	else if (DraggingSlot->SlotType != EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("TargetSlotINVENTORY")));
+
+
 		bool bHaveInventoryItem = false;
 
 		UItemInventory* inven = TargetSlot->GetTypedOuter<UItemInventory>();
@@ -225,12 +232,17 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 			{
 				DeleteWorldInventory();
 			}
+
+			bHaveEquipInventory = false;
 		}
 
 	}
 
 	else if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType != EItemType::INVENTORY)
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("DraggingSlotINVENTORY")));
+
+
 		if (TargetSlot->SlotData.Type == EItemType::INVENTORY)
 		{
 			UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
@@ -238,15 +250,16 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 			TArray<UWidget*> FromChildren = FromGrid->GetAllChildren();
 			FromGrid->ClearChildren();
 
-			USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+			SwapSlotData(DraggingSlot, TargetSlot);
 
-			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
+			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *DraggingSlot->SlotData.Name, *DraggingSlot->SlotData.Name);
 
-			if (TSubclassOf<AItem_bag> ItemClass = LoadClass<AItem_bag>(nullptr, *FullPath))
+			if (TSubclassOf<AItem_Inventory> ItemClass = LoadClass<AItem_Inventory>(nullptr, *FullPath))
 			{
-				AItem_bag* DefaultBag = ItemClass->GetDefaultObject<AItem_bag>();
+				AItem_Inventory* DefaultBag = ItemClass->GetDefaultObject<AItem_Inventory>();
 				CreateInventory(EquipInventoryArray, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height, EUnderInventoryType::EQUIP);
-				SwapSlotData(DraggingSlot, TargetSlot);
+				//EquipInventory->ItemSlot->SetSlotFromItem(DefaultBag->ItemData);
+				bHaveEquipInventory = true;
 			}
 		}
 
@@ -334,6 +347,7 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 	}
 
 	UpdateMagazine();
+	SaveInventories();
 }
 
 
