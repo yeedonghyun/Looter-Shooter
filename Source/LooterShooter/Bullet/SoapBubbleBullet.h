@@ -14,22 +14,19 @@ class LOOTERSHOOTER_API ASoapBubbleBullet : public AActor
 public:
 	ASoapBubbleBullet();
 
-protected:
+public:
 	virtual void BeginPlay() override;
 
-	// Collision component
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
-	USphereComponent* CollisionSphere;
+protected:
+	virtual void Tick(float DeltaTime) override;
 
-	// Projectile movement component
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-	UProjectileMovementComponent* ProjectileMovement;
-
-	// Handle collision
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
-public:
-	virtual void Tick(float DeltaTime) override;
+	UPROPERTY(BlueprintReadWrite)
+	int damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Collision")
+	USphereComponent* CollisionSphere;
 };

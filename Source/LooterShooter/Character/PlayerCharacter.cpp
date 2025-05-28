@@ -1,5 +1,6 @@
 #include "PlayerCharacter.h"
 #include "../Bullet/Bullet.h"
+#include "../Bullet/SoapBubbleBullet.h"
 #include "../Character/EnemyCharacter.h"
 #include <Kismet/GameplayStatics.h>
 
@@ -37,6 +38,8 @@ APlayerCharacter::APlayerCharacter() {
     EscapeDuration = 0.0f;
     EscapeDelay = 1.0f;
     bIskeyTutorialActive = false;
+
+    EscapeTime = 5.f;
 
 	GunEndPoint = FVector::ZeroVector;
     TargetOffset = FVector::ZeroVector;
@@ -93,6 +96,8 @@ APlayerCharacter::APlayerCharacter() {
         TEXT("/Script/EnhancedInput.InputAction'/Game/Data/InputAction/IA_KeyTutorial.IA_KeyTutorial'"));
 
     BulletClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_Bullet.BP_Bullet_C'"));
+	SoupBubbleClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Bullet/BP_SoapBubbleBullet.BP_SoapBubbleBullet_C'"));
+
     static ConstructorHelpers::FClassFinder<AActor> WeaponBP(TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Gun/BP_Weapon1.BP_Weapon1_C'"));
     if (WeaponBP.Succeeded())
     {
@@ -377,6 +382,7 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
 		if (bIsItem)
 		{
             AimedItem = Cast<AItemBase>(HitActor);
+            bIsAimedDropedWeapon = false;
 		}
 		else if (bIsDeadEnemy)
 		{
@@ -384,8 +390,9 @@ void APlayerCharacter::CheckItem(FVector Start, FRotator Rotation, int ViewDis)
 		}
 		else if (bIsWeaponDroped)
 		{
-            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("123124124")));
             AimedItem = DropWeapon->GunItem;
+            DropedWeapon = DropWeapon;
+            bIsAimedDropedWeapon = true;
 		}
 
         if (PlayerUI)
@@ -646,14 +653,8 @@ void APlayerCharacter::ApplyDamage(int Damage)
 
         if (Health <= 0.f)
         {
-            FadeInAndOut->PlayFadeIn();
             curState = PlayerState::DEAD;
-
-            GetWorldTimerManager().SetTimer(
-                ShootResetTimerHandle,
-                this, &APlayerCharacter::OpenMainLevel,
-                5.f, false
-            );
+            ReturnToMain();
 
             if (SkeletalMeshComponent)
             {
@@ -742,18 +743,23 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
     SkeletalMeshComponent->GetAnimInstance()->Montage_Play(ShootAnimation, 1.f);
     Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunShootAnimation, 1.f);
     
-    if (BulletClass && Weapon) {
-        FVector MuzzleLocation = Weapon->GetEndPointLocation();
-        FRotator FireRotation = Camera->GetCameraRotation();
+    //if (BulletClass && Weapon) {
+    //    FVector MuzzleLocation = Weapon->GetEndPointLocation();
+    //    FRotator FireRotation = Camera->GetCameraRotation();
 
-        if (!bAiming) {
-            float RandomYaw = FMath::RandRange(-2.0f, 2.0f);
-            float RandomPitch = FMath::RandRange(-1.0f, 1.0f);
-            FireRotation.Yaw += RandomYaw;
-            FireRotation.Pitch += RandomPitch;
-        }
+    //    if (!bAiming) {
+    //        float RandomYaw = FMath::RandRange(-2.0f, 2.0f);
+    //        float RandomPitch = FMath::RandRange(-1.0f, 1.0f);
+    //        FireRotation.Yaw += RandomYaw;
+    //        FireRotation.Pitch += RandomPitch;
+    //    }
 
-        GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, FireRotation);
+    //    GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, FireRotation);
+    //    Weapon->SpawnMuzzleFlash();
+    //}
+
+    if (SoupBubbleClass && Weapon) {
+        GetWorld()->SpawnActor<ASoapBubbleBullet>(SoupBubbleClass, Weapon->GetEndPointLocation(), Camera->GetCameraRotation());
         Weapon->SpawnMuzzleFlash();
     }
     
@@ -778,6 +784,20 @@ void APlayerCharacter::AddRecoil()
     }
     else {
         TargetRecoilOffset += FVector2D(RecoilPitch, RecoilYaw);
+    }
+}
+
+void APlayerCharacter::DestroyItemPerAimedItemType()
+{
+    if (bIsAimedDropedWeapon) {
+		if (DropedWeapon)
+		{
+			DropedWeapon->Destroy();
+			DropedWeapon = nullptr;
+		}
+    }
+    else {
+        AimedItem->Destroy();
     }
 }
 
@@ -845,6 +865,7 @@ void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
 
         }
         InventoryUI->AddItemEmptySlot(AimedItem);
+        DestroyItemPerAimedItemType();
         //AimedItem->Destroy();
     }
 }
@@ -1027,7 +1048,6 @@ void APlayerCharacter::CreateInventoryItem(FString name)
     }
 }
 
-
 void APlayerCharacter::UpdateItemUseDuration(float duration)
 {
     ItemUseDuration += duration;
@@ -1084,11 +1104,12 @@ bool APlayerCharacter::IsEscaping()
     return bIsEscaping;
 }
 
-/////////////////////////////////////////////////////////////////
-void APlayerCharacter::StartEscape(float EscapeTime)
+void APlayerCharacter::StartEscape()
 {
     bIsEscaping = true;
     PlayerUI->ToggleEscapeCanvas(true);
+    PlayerUI->UpdateEscapeTimer(EscapeTime);
+    GetWorldTimerManager().SetTimer(LevelTimerHandle, this, &APlayerCharacter::ReturnToMain, EscapeTime, false);
 }
 
 void APlayerCharacter::StopEscape()
@@ -1102,22 +1123,41 @@ void APlayerCharacter::StopEscape()
 void APlayerCharacter::UpdateEscapeDuration(float duration)
 {
     EscapeDuration += duration;
-    PlayerUI->UpdateEscapeTimer(EscapeDuration);
+    PlayerUI->UpdateEscapeTimer(EscapeTime - EscapeDuration);
 
-    if (EscapeDuration >= 3.f)
+    if (EscapeDuration >= EscapeTime)
     {
         InventoryUI->SaveInventories();
-        FadeInAndOut->PlayFadeIn();
-        GetWorldTimerManager().SetTimer(LevelTimerHandle, this, &APlayerCharacter::OpenMainLevel, 3.f, false);
     }
 }
 
-void APlayerCharacter::OpenMainLevel()
+void APlayerCharacter::ReturnToMain()
+{
+    if (curState == PlayerState::DEAD || bIsEscaping)
+    {
+        PlayFadeAndGoToMainLevel();
+    }
+}
+
+void APlayerCharacter::PlayFadeAndGoToMainLevel()
+{
+    if (FadeInAndOut)
+    {
+        FadeInAndOut->PlayFadeIn();
+    }
+
+    FTimerHandle TimerHandle;
+    GetWorldTimerManager().SetTimer(
+        TimerHandle,
+        this, &APlayerCharacter::GoToMainLevel,
+        5.f, false
+    );
+}
+
+void APlayerCharacter::GoToMainLevel()
 {
     UGameplayStatics::OpenLevel(this, FName("Main"));
 }
-
-
 
 void APlayerCharacter::UpdateMagazine(int maxAmmo)
 {
@@ -1126,7 +1166,6 @@ void APlayerCharacter::UpdateMagazine(int maxAmmo)
     MaxAmmo = maxAmmo;
     PlayerUI->SetMagazineText(MaxAmmo);
 }
-
 
 void APlayerCharacter::GetPlayerAmmoData()
 {

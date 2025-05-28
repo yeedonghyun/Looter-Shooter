@@ -123,14 +123,17 @@ protected:
 
 	UPlayerInventoryWidget* InventoryUI;
 
+	float EscapeTime;
+
 public:	
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	bool IsEscaping();
-	void StartEscape(float EscapeTime);
+	void StartEscape();
 	void StopEscape();
+	void PlayFadeAndGoToMainLevel();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* IMC;
@@ -272,14 +275,14 @@ private:
 	FTimerHandle StaminaTimerHandle;
 	FTimerHandle LevelTimerHandle;
 
-	void OpenMainLevel();
+	void ReturnToMain();
+	void GoToMainLevel();
 
 	UFUNCTION()
 	void StaminaControl();
 
 	UFUNCTION()
 	void HandStaminaControl();
-
 
 	void UpdateMagazine(int maxAmmo);
 
@@ -301,7 +304,11 @@ private:
 	FRotator BaseRelRotation;
 
 	TSubclassOf<AActor> BulletClass;
+	TSubclassOf<AActor> SoupBubbleClass;
 
+	void DestroyItemPerAimedItemType();
+	bool bIsAimedDropedWeapon;
+	AWeapon* DropedWeapon;
 
 
 

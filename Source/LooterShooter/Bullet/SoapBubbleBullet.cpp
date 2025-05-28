@@ -1,29 +1,26 @@
 #include "SoapBubbleBullet.h"
-#include "Components/SphereComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "../Character/EnemyCharacter.h"
+#include "../Character/PlayerCharacter.h"
+#include "UObject/ConstructorHelpers.h"
 
 ASoapBubbleBullet::ASoapBubbleBullet()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
+	InitialLifeSpan = 5.0f;
+	damage = 20;
+
+	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionMesh"));
+	CollisionSphere->InitSphereRadius(5.0f);
 	RootComponent = CollisionSphere;
-	CollisionSphere->InitSphereRadius(15.0f);
-	CollisionSphere->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-
-	CollisionSphere->OnComponentHit.AddDynamic(this, &ASoapBubbleBullet::OnHit);
-
-	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-	ProjectileMovement->InitialSpeed = 1000.f;
-	ProjectileMovement->MaxSpeed = 1000.f;
-	ProjectileMovement->bRotationFollowsVelocity = true;
-	ProjectileMovement->bShouldBounce = false;
-	ProjectileMovement->ProjectileGravityScale = 0.f; 
 }
 
 void ASoapBubbleBullet::BeginPlay()
 {
 	Super::BeginPlay();
+
+	CollisionSphere->OnComponentHit.AddDynamic(this, &ASoapBubbleBullet::OnHit);
 }
 
 void ASoapBubbleBullet::Tick(float DeltaTime)
@@ -36,7 +33,23 @@ void ASoapBubbleBullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherAc
 {
 	if (OtherActor && OtherActor != this && OtherComp)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SoapBubbleBullet hit: %s"), *OtherActor->GetName());
+		if (OtherActor->ActorHasTag("Enemy"))
+		{
+			AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(OtherActor);
+			if (Enemy)
+			{
+				Enemy->ApplyDamage(damage);
+			}
+		}
+		else if (OtherActor->ActorHasTag("Player"))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OverlayEnd")));
+			APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
+			if (Player)
+			{
+				Player->ApplyDamage(damage);
+			}
+		}
 
 		Destroy();
 	}

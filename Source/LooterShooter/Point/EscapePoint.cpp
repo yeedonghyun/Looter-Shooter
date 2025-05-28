@@ -37,7 +37,7 @@ void AEscapePoint::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		{
 			if (PlayerCharacter)
 			{
-				PlayerCharacter->StartEscape(EscapeTime);
+				PlayerCharacter->StartEscape();
 			}
 		}
 	}
