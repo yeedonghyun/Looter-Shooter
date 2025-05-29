@@ -132,6 +132,7 @@ void UPlayerInventoryWidget::UseItem(UInventorySlot* TargetSlot)
 	{
 		if (TargetSlot->SlotData.Type == EItemType::HEALING || TargetSlot->SlotData.Type == EItemType::ARMOR || TargetSlot->SlotData.Type == EItemType::AMMO)
 		{
+
 			bUsingItem = true;
 			TargetSlot->StartConsume();
 			OnItemUseRequested.Broadcast(TargetSlot->SlotData);

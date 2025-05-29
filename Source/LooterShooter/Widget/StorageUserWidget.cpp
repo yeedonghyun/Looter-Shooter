@@ -504,10 +504,15 @@ void UStorageUserWidget::OnSelectMapButtonClicked()
 {
 	if (!WeaponSlot->SlotData.bHaveItem)
 	{
+		if (InventoryWarningMessage)
+		{
+			ShowWarningMessage("No weapon");
+		}
+
 		return;
 	}
 
-
+	SaveInventories();
 
 	this->RemoveFromParent();
 

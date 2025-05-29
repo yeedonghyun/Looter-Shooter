@@ -21,39 +21,28 @@ void AItem_Inventory::BeginPlay()
 
     if (InventoryType == EInventoryType::BOX)
     {
-        TArray<FString> itemList = { "Ammo1" , "Armor1" ,"Armor3" ,"bag48" ,"Syringe" ,"Medikit" };
-        int randCnt = FMath::RandRange(0, 4);
+        TArray<FString> itemList = { "Ammo" , "SmallArmor" ,"BigArmor" ,"SmallBag" ,"Syringe" ,"Medikit" };
+        int randCnt = FMath::RandRange(1, 5);
         int cnt = 0;
 
         for (int i = 0; i < randCnt; i++)
         {
             int randItemIdx = FMath::RandRange(0, itemList.Num() - 1);
 
-            while (1)
+            FString name = itemList[randItemIdx];
+            FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *name, *name);
+
+            if (TSubclassOf<AItemBase> ItemClass = LoadClass<AItemBase>(nullptr, *FullPath))
             {
-                int randIdx = FMath::RandRange(0, savedItems.Num() - 1);
+                AItemBase* DefaultObject = ItemClass->GetDefaultObject<AItemBase>();
 
-                if (savedItems[randIdx].bHaveItem)
+                if (DefaultObject)
                 {
-                    continue;
-                }
-
-                FString name = itemList[randItemIdx];
-                FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *name, *name);
-
-                if (TSubclassOf<AItemBase> ItemClass = LoadClass<AItemBase>(nullptr, *FullPath))
-                {
-                    AItemBase* DefaultObject = ItemClass->GetDefaultObject<AItemBase>();
-
-                    if (DefaultObject)
-                    {
-                        savedItems[randIdx].SetSlotFromItemData(DefaultObject->ItemData);
-                        break;
-                    }
+                    savedItems[i].SetSlotFromItemData(DefaultObject->ItemData);
+                    //break;
                 }
             }
         }
-
     }
 }
 

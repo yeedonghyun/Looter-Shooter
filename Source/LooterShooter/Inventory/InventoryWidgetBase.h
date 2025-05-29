@@ -15,6 +15,7 @@
 #include "../Inventory/Inventory.h"
 #include "../Inventory/ItemInventory.h"
 #include "../Inventory/RightClickOption.h"
+#include "Components/ProgressBar.h"
 #include <LooterShooter/Item/Item_Inventory.h>
 
 #include "InventoryWidgetBase.generated.h"
@@ -154,4 +155,25 @@ public:
 	int32 money;
 
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UProgressBar* UHealth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UProgressBar* UArmor;
+
+
+	UFUNCTION(BlueprintCallable)
+	void SetHealth(float TargetValue);
+	UFUNCTION(BlueprintCallable)
+	void SetArmor(float TargetValue);
+	UFUNCTION(BlueprintCallable)
+	void UpdateHealth();
+	UFUNCTION(BlueprintCallable)
+	void UpdateArmor();
+
+	FTimerHandle HealthUpdateTimerHandle;
+	FTimerHandle ArmorUpdateTimerHandle;
+
+	float HealthTargetValue;
+	float ArmorTargetValue;
 };

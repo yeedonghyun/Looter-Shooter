@@ -243,6 +243,8 @@ void APlayerCharacter::BeginPlay()
     }
 
     LoadInventoryClass();
+    InventoryUI->SetHealth(Health / MaxHealth);
+    InventoryUI->SetArmor(Armor / MaxArmor);
 
     if (TSubclassOf<UUserWidget> KeyTutorialUIClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_KeyTutorialWidget.BP_KeyTutorialWidget_C'")))
     {
@@ -654,7 +656,36 @@ void APlayerCharacter::ApplyDamage(int Damage)
         if (Health <= 0.f)
         {
             curState = PlayerState::DEAD;
+
+            USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+            SaveData->PlayerHealth = 100;
+            SaveData->bEquipWeapon = false;
+
+            for (int32 i = 0; i < SaveData->InventoryItems.Num(); i++)
+            {
+                if (SaveData->InventoryItems[i].bHaveItem)
+                {
+                    SaveData->InventoryItems[i].bHaveItem = false;
+                }
+            }
+
+            SaveData->bEquipInventory = false;
+
+            for (int32 i = 0; i < SaveData->EquipInventoryItems.Num(); i++)
+            {
+                if (SaveData->EquipInventoryItems[i].bHaveItem)
+                {
+                    SaveData->EquipInventoryItems[i].bHaveItem = false;
+                }
+            }
+
+            USaveManager::SaveDataSet("Save1", SaveData);
+
+
+
             ReturnToMain();
+
+
 
             if (SkeletalMeshComponent)
             {
@@ -743,6 +774,7 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
     SkeletalMeshComponent->GetAnimInstance()->Montage_Play(ShootAnimation, 1.f);
     Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunShootAnimation, 1.f);
     
+    //// 일반 총알
     //if (BulletClass && Weapon) {
     //    FVector MuzzleLocation = Weapon->GetEndPointLocation();
     //    FRotator FireRotation = Camera->GetCameraRotation();
@@ -758,6 +790,7 @@ void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
     //    Weapon->SpawnMuzzleFlash();
     //}
 
+    //비눗방울
     if (SoupBubbleClass && Weapon) {
         GetWorld()->SpawnActor<ASoapBubbleBullet>(SoupBubbleClass, Weapon->GetEndPointLocation(), Camera->GetCameraRotation());
         Weapon->SpawnMuzzleFlash();
@@ -1030,6 +1063,8 @@ void APlayerCharacter::LoadInventoryClass()
             InventoryUI->AddToViewport();
         }
 
+
+
         InventoryUI->ToggleInventory(bOpenInventory);
         InventoryUI->OnDropRequested.AddUObject(this, &APlayerCharacter::CreateInventoryItem);
         InventoryUI->OnItemUseRequested.AddUObject(this, &APlayerCharacter::UseItemWithDelay);
@@ -1077,13 +1112,20 @@ void APlayerCharacter::UseItem()
         Health = (Health + UsingItemData.Value > MaxHealth) ? MaxHealth : Health + UsingItemData.Value;
         PlayerUI->SetHealth(Health / MaxHealth);
         HitAndHealIndicatorUI->PlayHealHP();
+
+        InventoryUI->SetHealth(Health / MaxHealth);
+
         break;
 
     case EItemType::ARMOR:
 
         Armor = (Armor + UsingItemData.Value > MaxArmor) ? MaxArmor : Armor + UsingItemData.Value;
         PlayerUI->SetArmor(Armor / MaxArmor);
+
+
         HitAndHealIndicatorUI->PlayHealArmor();
+
+        InventoryUI->SetArmor(Armor / MaxArmor);
         break;
 
     case EItemType::AMMO:

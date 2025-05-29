@@ -98,9 +98,9 @@ void UInventoryWidgetBase::InitWidget()
 	{
 		CreateInventory(ShopInventoryArray, ShopInventory->Grid, 2, 5, EUnderInventoryType::SHOP);
 
-		TArray<FString> itemList = { "Ammo1" , "Armor1" ,"Armor3","Syringe" ,"Medikit" };
+		TArray<FString> itemList = { "Ammo" , "SmallArmor" ,"BigArmor","Syringe" ,"Medikit", "Gun", "SmallBag"};
 
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < itemList.Num(); i++)
 		{
 			FString name = itemList[i];
 			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *name, *name);
@@ -167,6 +167,17 @@ void UInventoryWidgetBase::InitWidget()
 		}
 
 	}
+
+	if (UHealth)
+	{
+		SetHealth(SaveData->PlayerHealth / 100);
+	}
+
+	if (UArmor)
+	{
+		SetArmor(SaveData->PlayerArmor / 100);
+	}
+
 }
 
 
@@ -546,7 +557,22 @@ void UInventoryWidgetBase::CheckAmmo()
 	{
 		if (EquipInventory)
 		{
+			for (int32 i = 0; i < EquipInventoryArray.Num(); i++)
+			{
+				if (EquipInventoryArray[i]->SlotData.bHaveItem)
+				{
+					if (EquipInventoryArray[i]->SlotData.Type == EItemType::AMMO)
+					{
+						if (!bFindAmmo)
+						{
+							FirstAmmoSlot = EquipInventoryArray[i];
+							bFindAmmo = true;
+						}
 
+						sumAmmo += EquipInventoryArray[i]->SlotData.Amount;
+					}
+				}
+			}
 		}
 	}
 
@@ -565,4 +591,64 @@ void UInventoryWidgetBase::UpdateAmmo()
 	}
 
 	//텍스트 업데이트
+}
+
+
+void UInventoryWidgetBase::SetHealth(float TargetValue)
+{
+	//UHealth->SetPercent(TargetValue);
+
+
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimer(HealthUpdateTimerHandle, this, &UInventoryWidgetBase::UpdateHealth, 0.02f, true);
+
+		HealthTargetValue = TargetValue;
+	}
+}
+
+void UInventoryWidgetBase::SetArmor(float TargetValue)
+{
+	//UArmor->SetPercent(TargetValue);
+
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimer(ArmorUpdateTimerHandle, this, &UInventoryWidgetBase::UpdateArmor, 0.02f, true);
+
+		ArmorTargetValue = TargetValue;
+	}
+}
+
+void UInventoryWidgetBase::UpdateHealth()
+{
+	float CurrentValue = UHealth->Percent;
+	float Step = 0.01f;
+
+	if (FMath::Abs(CurrentValue - HealthTargetValue) <= Step)
+	{
+		UHealth->SetPercent(HealthTargetValue);
+		GetWorld()->GetTimerManager().ClearTimer(HealthUpdateTimerHandle);
+	}
+	else
+	{
+		float NewValue = FMath::FInterpTo(CurrentValue, HealthTargetValue, GetWorld()->GetDeltaSeconds(), 5.0f);
+		UHealth->SetPercent(NewValue);
+	}
+}
+
+void UInventoryWidgetBase::UpdateArmor()
+{
+	float CurrentValue = UArmor->Percent;
+	float Step = 0.01f;
+
+	if (FMath::Abs(CurrentValue - ArmorTargetValue) <= Step)
+	{
+		UArmor->SetPercent(ArmorTargetValue);
+		GetWorld()->GetTimerManager().ClearTimer(ArmorUpdateTimerHandle);
+	}
+	else
+	{
+		float NewValue = FMath::FInterpTo(CurrentValue, ArmorTargetValue, GetWorld()->GetDeltaSeconds(), 5.0f);
+		UArmor->SetPercent(NewValue);
+	}
 }
