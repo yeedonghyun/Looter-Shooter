@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,6 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Camera/CameraComponent.h" 
 #include "../Widget/PlayerUIWidget.h"
 #include "../Gun/Weapon.h"
 #include "../Item/ItemBase.h"
@@ -113,6 +112,7 @@ protected:
 	APlayerCameraManager* Camera;
 	APlayerController* PlayerController;
 	USceneComponent* PivotComponent;
+	UCameraComponent* PlayerCameraComponent;
 
 	UPlayerUIWidget* PlayerUI;
 	UFadeInAndOutWidget* FadeInAndOut;
@@ -124,6 +124,7 @@ protected:
 	UPlayerInventoryWidget* InventoryUI;
 
 	float EscapeTime;
+	float ChargeDuration;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
@@ -162,6 +163,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bIsTilting;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bIsFireBubble;
+
 	USkeletalMeshComponent* SkeletalMeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
@@ -189,6 +193,7 @@ public:
 	int MagazineAmmo;
 	int MaxAmmo;
 
+	bool bIsStartFireBubble;
 
 	bool bSemiFire;
 	float Sensitivity;
@@ -219,6 +224,13 @@ public:
 	float EscapeDuration;
 	float EscapeDelay;
 	bool bIskeyTutorialActive;
+	bool bIsBubbleMode;
+
+	UFUNCTION(BlueprintCallable)
+	void SetBubbleMode(bool mode) { bIsBubbleMode = mode; };
+
+	UFUNCTION(BlueprintCallable)
+	bool GetBubbleMode() { return bIsBubbleMode; };
 
 private:
 	//Run
@@ -256,6 +268,7 @@ private:
 
 	void ResetShoot();
 	void ResetReload();
+	void ResetBubble();
 
 	//item
 	TSubclassOf<AWeapon> WeaponClass;
@@ -292,7 +305,7 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Recoil")
 	float RecoilRecoverySpeed = 5.0f;
-	void AddRecoil();
+	void AddRecoil(float RecoilPitchMin, float RecoilPitchMax, float RecoilYawMin, float RecoilYawMax);
 
 	float TargetRoll = 0.0f;
 	FVector TargetOffset = FVector::ZeroVector;

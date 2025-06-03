@@ -41,6 +41,11 @@ APlayerCharacter::APlayerCharacter() {
 
     EscapeTime = 5.f;
 
+	bIsBubbleMode = false;
+    bIsFireBubble = false;
+    bIsStartFireBubble = false;
+    ChargeDuration = 1.f;
+
 	GunEndPoint = FVector::ZeroVector;
     TargetOffset = FVector::ZeroVector;
 
@@ -117,8 +122,6 @@ void APlayerCharacter::BeginPlay()
     Health = SaveData->PlayerHealth;
     Armor = SaveData->PlayerArmor;
 
-
-
     for (UActorComponent* Child : GetComponents())
     {
         if (USceneComponent* SceneChild = Cast<USceneComponent>(Child))
@@ -130,7 +133,7 @@ void APlayerCharacter::BeginPlay()
             }
         }
     }
-
+    
     if (PlayerController)
     {
         if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
@@ -338,6 +341,23 @@ void APlayerCharacter::Tick(float DeltaTime)
         TiltInterpSpeed
     );
     SkeletalMeshComponent->SetRelativeLocation(NewRelLoc);
+
+    if (bIsStartFireBubble)
+    {
+        ElapsedTime += DeltaTime;
+
+        float ShakeAmount = FMath::Lerp(0.0f, 5.f, ElapsedTime / ChargeDuration);
+        float RandomYaw = FMath::RandRange(-0.5f, 0.5f) * ShakeAmount;
+        float RandomPitch = FMath::RandRange(-0.5f, 0.5f) * ShakeAmount;
+
+        AddControllerYawInput(RandomYaw * DeltaTime);
+        AddControllerPitchInput(RandomPitch * DeltaTime);
+    }
+
+    if (bRun && GetCharacterMovement()->IsFalling())
+    {
+        UnRun(FInputActionValue());
+    }
 }
 
 void APlayerCharacter::CheckObjectCloseAhead()
@@ -763,54 +783,76 @@ void APlayerCharacter::UnAim(const FInputActionValue& InputValue)
 
 void APlayerCharacter::Shoot(const FInputActionValue& InputValue)
 {
-    if (CurrentAmmo <= 0 || bShoot || bRun || bReload || bOpenInventory || curState == PlayerState::DEAD || bIskeyTutorialActive)
+    if (CurrentAmmo <= 0 || bShoot || bIsFireBubble || bIsStartFireBubble || bRun || bReload || bOpenInventory || 
+        curState == PlayerState::DEAD || bIskeyTutorialActive)
         return;
-
-    if (PlayerUI) {
-        CurrentAmmo--;
-        PlayerUI->SetLeftAmmoText(CurrentAmmo);
-    }
-
-    SkeletalMeshComponent->GetAnimInstance()->Montage_Play(ShootAnimation, 1.f);
-    Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunShootAnimation, 1.f);
     
-    //// 일반 총알
-    //if (BulletClass && Weapon) {
-    //    FVector MuzzleLocation = Weapon->GetEndPointLocation();
-    //    FRotator FireRotation = Camera->GetCameraRotation();
+    if (bIsBubbleMode && SoupBubbleClass && Weapon) {
+        GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::ResetShoot, ChargeDuration, false);
+        bIsStartFireBubble = true;
+    }
+    else if(BulletClass && Weapon) {
+        FVector MuzzleLocation = Weapon->GetEndPointLocation();
+        FRotator FireRotation = Camera->GetCameraRotation();
 
-    //    if (!bAiming) {
-    //        float RandomYaw = FMath::RandRange(-2.0f, 2.0f);
-    //        float RandomPitch = FMath::RandRange(-1.0f, 1.0f);
-    //        FireRotation.Yaw += RandomYaw;
-    //        FireRotation.Pitch += RandomPitch;
-    //    }
+        if (!bAiming) {
+            float RandomYaw = FMath::RandRange(-2.0f, 2.0f);
+            float RandomPitch = FMath::RandRange(-1.0f, 1.0f);
+            FireRotation.Yaw += RandomYaw;
+            FireRotation.Pitch += RandomPitch;
+        }
 
-    //    GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, FireRotation);
-    //    Weapon->SpawnMuzzleFlash();
-    //}
+        SkeletalMeshComponent->GetAnimInstance()->Montage_Play(ShootAnimation, 1.f);
+        Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunShootAnimation, 1.f);
 
-    //비눗방울
-    if (SoupBubbleClass && Weapon) {
-        GetWorld()->SpawnActor<ASoapBubbleBullet>(SoupBubbleClass, Weapon->GetEndPointLocation(), Camera->GetCameraRotation());
+        GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, FireRotation);
+
+        if (PlayerUI) {
+            CurrentAmmo--;
+            PlayerUI->SetLeftAmmoText(CurrentAmmo);
+        }
+
         Weapon->SpawnMuzzleFlash();
+
+        AddRecoil(0.5f, 1.0f, -1.0f, 1.0f);
+
+        GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::ResetShoot, 0.2f, false);
+        bShoot = true;
     }
-    
-    AddRecoil();
-
-    bShoot = true;
-
-    float AnimationDuration = 0.2;
-    GetWorldTimerManager().SetTimer(ShootResetTimerHandle, this, &APlayerCharacter::ResetShoot, AnimationDuration, false);
 }
 
-void APlayerCharacter::AddRecoil()
+void APlayerCharacter::ResetShoot()
+{
+    if (bIsBubbleMode) {
+        GetWorld()->SpawnActor<ASoapBubbleBullet>(SoupBubbleClass, Weapon->GetEndPointLocation(), Camera->GetCameraRotation());
+        SkeletalMeshComponent->GetAnimInstance()->Montage_Play(ShootAnimation, 1.f);
+        Weapon->GetSkeletalMeshComponent()->GetAnimInstance()->Montage_Play(GunShootAnimation, 1.f);
+
+        AddRecoil(10.5f, 10.5f, -10.0f, 10.0f);
+
+        bIsBubbleMode = false;
+        bIsFireBubble = true;
+        bIsStartFireBubble = false;
+
+        FTimerHandle TimeHandle;
+        GetWorldTimerManager().SetTimer(TimeHandle, this, &APlayerCharacter::ResetBubble, 0.3f, false);
+    }
+    else {
+        bShoot = false;
+    }
+}
+
+void APlayerCharacter::ResetBubble() {
+    bIsFireBubble = false;
+}
+
+void APlayerCharacter::AddRecoil(float RecoilPitchMin, float RecoilPitchMax, float RecoilYawMin, float RecoilYawMax)
 {
     if (!PlayerController || curState == PlayerState::DEAD) 
         return;
 
-    float RecoilPitch = FMath::RandRange(0.5f, 1.0f);
-    float RecoilYaw = FMath::RandRange(-1.0f, 1.0f);
+    float RecoilPitch = FMath::RandRange(RecoilPitchMin, RecoilPitchMax);
+    float RecoilYaw = FMath::RandRange(RecoilYawMin, RecoilYawMax);
 
     if (!bAiming) {
         TargetRecoilOffset += FVector2D(RecoilPitch * 0.1f, RecoilYaw * 0.1f);
@@ -859,10 +901,6 @@ void APlayerCharacter::UnCrouch(bool bClientSimulation)
     bCrouch = false;
 }
 
-void APlayerCharacter::ResetShoot()
-{
-    bShoot = false;
-}
 
 void APlayerCharacter::UnShoot(const FInputActionValue& InputValue)
 {
@@ -894,12 +932,9 @@ void APlayerCharacter::PickUpItem(const FInputActionValue& InputValue)
                     }
                 }
             }
-
-
         }
         InventoryUI->AddItemEmptySlot(AimedItem);
         DestroyItemPerAimedItemType();
-        //AimedItem->Destroy();
     }
 }
 
@@ -908,7 +943,6 @@ void APlayerCharacter::CreateItem(const FInputActionValue& InputValue)
     if (TSubclassOf<AActor> TestItemClass = LoadClass<AActor>(nullptr, TEXT("/Script/Engine.Blueprint'/Game/BluePrint/Item/BP_Item_bag.BP_Item_bag_C'"))) {
         AItemBase* SpawnedBullet = GetWorld()->SpawnActor<AItemBase>(TestItemClass, GunEndPoint, Camera->GetCameraRotation());
     }
-
 }
 
 void APlayerCharacter::LeftTilt(const FInputActionValue& InputValue)
@@ -1049,7 +1083,6 @@ void APlayerCharacter::HandStaminaControl()
         }
     }
 
-
     PlayerUI->SetHandStamina(curHandStamina);
 }
 
@@ -1062,8 +1095,6 @@ void APlayerCharacter::LoadInventoryClass()
         {
             InventoryUI->AddToViewport();
         }
-
-
 
         InventoryUI->ToggleInventory(bOpenInventory);
         InventoryUI->OnDropRequested.AddUObject(this, &APlayerCharacter::CreateInventoryItem);
@@ -1150,7 +1181,7 @@ void APlayerCharacter::StartEscape()
 {
     bIsEscaping = true;
     PlayerUI->ToggleEscapeCanvas(true);
-    PlayerUI->UpdateEscapeTimer(EscapeTime);
+    PlayerUI->UpdateEscapeTimer(EscapeTime + 1);
     GetWorldTimerManager().SetTimer(LevelTimerHandle, this, &APlayerCharacter::ReturnToMain, EscapeTime, false);
 }
 
@@ -1165,9 +1196,9 @@ void APlayerCharacter::StopEscape()
 void APlayerCharacter::UpdateEscapeDuration(float duration)
 {
     EscapeDuration += duration;
-    PlayerUI->UpdateEscapeTimer(EscapeTime - EscapeDuration);
+    PlayerUI->UpdateEscapeTimer(EscapeTime - EscapeDuration + 1);
 
-    if (EscapeDuration >= EscapeTime)
+    if (EscapeDuration >= EscapeTime + 1)
     {
         InventoryUI->SaveInventories();
     }

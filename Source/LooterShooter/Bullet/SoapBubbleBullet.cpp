@@ -9,7 +9,7 @@ ASoapBubbleBullet::ASoapBubbleBullet()
 	PrimaryActorTick.bCanEverTick = true;
 
 	InitialLifeSpan = 5.0f;
-	damage = 20;
+	damage = 1000;
 
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionMesh"));
 	CollisionSphere->InitSphereRadius(5.0f);
@@ -39,15 +39,6 @@ void ASoapBubbleBullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherAc
 			if (Enemy)
 			{
 				Enemy->ApplyDamage(damage);
-			}
-		}
-		else if (OtherActor->ActorHasTag("Player"))
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OverlayEnd")));
-			APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-			if (Player)
-			{
-				Player->ApplyDamage(damage);
 			}
 		}
 
