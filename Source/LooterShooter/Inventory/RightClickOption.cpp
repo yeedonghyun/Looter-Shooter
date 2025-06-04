@@ -21,14 +21,10 @@ void URightClickOption::NativeConstruct()
 
 void URightClickOption::OnUseClicked()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OnUseClicked")));
-
     OnActionSelected.Broadcast(ESlotActionType::USE);
 }
 
 void URightClickOption::OnDropClicked()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OnDropClicked")));
-
     OnActionSelected.Broadcast(ESlotActionType::DROP);
 }

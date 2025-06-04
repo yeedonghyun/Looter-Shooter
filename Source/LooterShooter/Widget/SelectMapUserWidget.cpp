@@ -1,5 +1,10 @@
 #include "SelectMapUserWidget.h"
+
+#include <LooterShooter/Save/SaveManager.h>
+
 #include "Kismet/GameplayStatics.h"
+
+
 
 USelectMapUserWidget::USelectMapUserWidget(const FObjectInitializer& Object) : Super(Object)
 {
@@ -42,6 +47,23 @@ void USelectMapUserWidget::NativeConstruct()
 
 void USelectMapUserWidget::OnPlayButtonClicked()
 {
+    USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+
+    if (!SaveData->bEquipWeapon)    //총 있는지 확인하고 없으면 못들어가게
+    {
+        if (WarningMessage)
+        {
+            ShowWarningMessage("No weapon");
+        }
+
+        return;
+    }
+
+
+
+
+
+
     if (MapIndex == 1) {
         UGameplayStatics::OpenLevel(this, FName("L_Showcase_map"));
     }
@@ -163,5 +185,39 @@ void USelectMapUserWidget::OnExitButtonUnhovered()
         color = Back->GetBackgroundColor();
         color.A = 0;
         Back->SetBackgroundColor(color);
+    }
+}
+
+
+void USelectMapUserWidget::ShowWarningMessage(FString fs)
+{
+    if (WarningMessage)
+    {
+        if (UpdateHandle.IsValid())
+        {
+            UpdateHandle.Invalidate();
+        }
+
+        GetWorld()->GetTimerManager().SetTimer(UpdateHandle, FTimerDelegate::CreateLambda([this]()
+            {
+                ToggleWarningMessage(false);
+            }), 1.f, false);
+
+
+        ToggleWarningMessage(true);
+        WarningMessage->SetText(FText::FromString(fs));
+    }
+}
+
+void USelectMapUserWidget::ToggleWarningMessage(bool bActive)
+{
+    if (WarningMessage)
+    {
+        if (bActive)
+        {
+            WarningMessage->SetVisibility(ESlateVisibility::Visible);
+        }
+
+        else WarningMessage->SetVisibility(ESlateVisibility::Collapsed);
     }
 }

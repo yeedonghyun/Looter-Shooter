@@ -43,7 +43,6 @@ void ABullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		}
 		else if (OtherActor->ActorHasTag("Player"))
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OverlayEnd")));
 			APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 			if (Player)
 			{

@@ -1,5 +1,6 @@
 #include "MainMenuUserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "StorageUserWidget.h"
 
 void UMainMenuUserWidget::NativeConstruct()
 {
@@ -52,14 +53,29 @@ void UMainMenuUserWidget::OnStorageButtonClicked()
 {
     this->RemoveFromParent();
 
+
     if (TSubclassOf<UUserWidget> StorageWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_StorageUserWidget.BP_StorageUserWidget_C'")))
     {
-        UUserWidget* StorageWidget = CreateWidget<UUserWidget>(GetWorld(), StorageWidgetClass);
+        UStorageUserWidget* StorageWidget = CreateWidget<UStorageUserWidget>(GetWorld(), StorageWidgetClass);
         if (StorageWidget)
         {
             StorageWidget->AddToViewport();
+
+            USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+
+            StorageWidget->SetHealth(SaveData->PlayerHealth / static_cast<float>(100));
+            StorageWidget->SetArmor(SaveData->PlayerArmor / static_cast<float>(100));
         }
     }
+
+//    if (TSubclassOf<UUserWidget> StorageWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BluePrint/Widget/BP_StorageUserWidget.BP_StorageUserWidget_C'")))
+//    {
+//        UUserWidget* StorageWidget = CreateWidget<UUserWidget>(GetWorld(), StorageWidgetClass);
+//        if (StorageWidget)
+//        {
+//            StorageWidget->AddToViewport();
+//        }
+//    }
 }
 
 void UMainMenuUserWidget::OnSettingButtonClicked()

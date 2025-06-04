@@ -46,6 +46,18 @@ void UStorageUserWidget::NativeConstruct()
 		Apply->OnClicked.AddDynamic(this, &UStorageUserWidget::OnApplyButtonClicked);
 	}
 
+	//USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+
+	//if (UHealth)
+	//{
+	//	SetHealth(SaveData->PlayerHealth / 100);
+	//}
+
+	//if (UArmor)
+	//{
+	//	SetArmor(SaveData->PlayerArmor / 100);
+	//}
+
 }
 
 void UStorageUserWidget::OnBuyButtonClicked()
@@ -158,6 +170,13 @@ void UStorageUserWidget::OnApplyButtonClicked()
 		break;
 	case ETradeType::BUY:
 
+		if (money - tradingCost < 0)
+		{
+			ShowWarningMessage("Not enogh money");
+			return;
+		}
+
+
 		if (TradingInventory)
 		{
 			for (int i = 0; i < TradingInventoryArray.Num(); i++)
@@ -204,9 +223,6 @@ void UStorageUserWidget::OnApplyButtonClicked()
 
 void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
-
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("SWAP")));
-
 	if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
 		UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
@@ -236,8 +252,6 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 
 	else if (DraggingSlot->SlotType != EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("TargetSlotINVENTORY")));
-
 
 		bool bHaveInventoryItem = false;
 
@@ -284,9 +298,6 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 
 	else if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType != EItemType::INVENTORY)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("DraggingSlotINVENTORY")));
-
-
 		if (TargetSlot->SlotData.Type == EItemType::INVENTORY)
 		{
 			UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
@@ -309,7 +320,8 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 
 	}
 
-	else if (DraggingSlot->SlotData.Type == EItemType::AMMO && TargetSlot->SlotData.Type == EItemType::AMMO)
+	else if (DraggingSlot->SlotData.Type == EItemType::AMMO && TargetSlot->SlotData.Type == EItemType::AMMO
+		)
 	{
 		int NeedAmmo = DraggingSlot->SlotData.MaxAmount - DraggingSlot->SlotData.Amount;
 		int maxBringable = FMath::Min(NeedAmmo, TargetSlot->SlotData.Amount);
@@ -325,6 +337,19 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 		}
 
 		TargetSlot->ToggleSlot();
+
+	}
+
+	else
+	{
+		if (TargetSlot->UnderInventoryType != EUnderInventoryType::TRADE && TargetSlot->UnderInventoryType != EUnderInventoryType::SHOP
+			&& DraggingSlot->UnderInventoryType != EUnderInventoryType::TRADE && DraggingSlot->UnderInventoryType != EUnderInventoryType::SHOP
+			)
+		{
+			SwapSlotData(DraggingSlot, TargetSlot);
+
+		}
+
 
 	}
 
@@ -349,7 +374,11 @@ void UStorageUserWidget::MoveItemTradeInventory(UInventorySlot* TargetSlot)
 
 void UStorageUserWidget::HandleSlotRightClickRequest(UInventorySlot* TargetSlot)
 {
-	if (TargetSlot->SlotData.Type == EItemType::WEAPON && tradeType == ETradeType::NONE)
+	if (TargetSlot->SlotData.Type == EItemType::WEAPON && tradeType == ETradeType::NONE
+		&& (TargetSlot->UnderInventoryType == EUnderInventoryType::PLAYER || 
+			TargetSlot->UnderInventoryType == EUnderInventoryType::EQUIP ||
+			TargetSlot->UnderInventoryType == EUnderInventoryType::STORAGE)
+		)
 	{
 		if (WeaponSlot)
 		{
@@ -390,8 +419,6 @@ void UStorageUserWidget::HandleSlotRightClickRequest(UInventorySlot* TargetSlot)
 				TargetSlot->SlotData.bHaveItem = false;
 				TargetSlot->ToggleSlot();
 			}
-
-
 
 			break;
 
@@ -442,7 +469,7 @@ void UStorageUserWidget::HandleSlotRightClickRequest(UInventorySlot* TargetSlot)
 		UpdateMoney();
 	}
 
-
+	SaveInventories();
 }
 
 

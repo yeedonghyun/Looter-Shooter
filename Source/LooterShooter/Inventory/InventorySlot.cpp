@@ -252,8 +252,6 @@ void UInventorySlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPo
 				UTexture2D* ItemTexture = Cast<UTexture2D>(IMG_Item->Brush.GetResourceObject());
 				if (ItemTexture) { DragWidget->IMG_Item->SetBrushFromTexture(ItemTexture); }
 				Operation->DefaultDragVisual = DragWidget;
-
-				GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Debug::%d"), DragWidget->_idx));
 			}
 		}
 	}

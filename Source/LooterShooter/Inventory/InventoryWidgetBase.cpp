@@ -47,7 +47,6 @@ void UInventoryWidgetBase::InitWidget()
 
 	if (PlayerInventory)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("PlayerInventory")));
 
 		CreateInventory(PlayerInventoryArray, PlayerInventory->Grid, SaveData->InventoryRowSize, SaveData->InventoryColSize, EUnderInventoryType::PLAYER);
 
@@ -246,7 +245,6 @@ void UInventoryWidgetBase::SwapSlotData(UInventorySlot*& DraggingSlot, UInventor
 void UInventoryWidgetBase::HandleSlotActionRequest(UInventorySlot* TargetSlot, ESlotActionType type, bool bActive)
 {
 
-
 	switch (type)
 	{
 	case ESlotActionType::DROP:
@@ -261,8 +259,6 @@ void UInventoryWidgetBase::HandleSlotActionRequest(UInventorySlot* TargetSlot, E
 		DedicateSlot = TargetSlot;
 
 		CreateClickOption();
-
-
 
 		break;
 
@@ -322,7 +318,6 @@ void UInventoryWidgetBase::CreateClickOption()
 
 		if (RightClickOption)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CreateWidget")));
 
 			FVector2D curMousePosition;
 
@@ -378,7 +373,6 @@ void UInventoryWidgetBase::UpdateMagazine()
 
 void UInventoryWidgetBase::SaveInventories()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Save")));
 
 	USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
 
@@ -425,6 +419,23 @@ void UInventoryWidgetBase::SaveInventories()
 
 		SaveData->StorageItems = tmp;
 	}
+
+
+	if (WeaponSlot)
+	{
+		if (WeaponSlot->SlotData.bHaveItem)
+		{
+			SaveData->bEquipWeapon = true;
+			SaveData->EquipWeaponName = WeaponSlot->SlotData.Name;
+		}
+
+		else
+		{
+			SaveData->bEquipWeapon = false;
+		}
+
+	}
+
 	
 	SaveData->money = money;
 
@@ -484,16 +495,12 @@ void UInventoryWidgetBase::ToggleWarningMessage(bool bActive)
 
 void UInventoryWidgetBase::OnSlotActionSelected(ESlotActionType ActionType)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OnSlotAction")));
 
 	if (DedicateSlot)
 	{
 		switch (ActionType)
 		{
 		case ESlotActionType::USE:
-
-			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("OnSlotActionSelectedUseItem")));
-
 			UseItem(DedicateSlot);
 			break;
 		case ESlotActionType::DROP:

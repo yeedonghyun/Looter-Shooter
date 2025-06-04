@@ -100,8 +100,6 @@ void UPlayerInventoryWidget::CreateWorldInventory(AItemBase* AimedItem)
 void UPlayerInventoryWidget::DeleteWorldInventory()
 {
 
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Delete")));
-
 	for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
 	{
 		WorldBagInventoryArray[i]->RemoveFromParent();
@@ -162,7 +160,6 @@ void UPlayerInventoryWidget::DropItem(UInventorySlot* TargetSlot)
 
 void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("SWAP")));
 
 	if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
@@ -193,8 +190,6 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 
 	else if (DraggingSlot->SlotType != EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("TargetSlotINVENTORY")));
-
 
 		bool bHaveInventoryItem = false;
 
@@ -241,7 +236,6 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 
 	else if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType != EItemType::INVENTORY)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("DraggingSlotINVENTORY")));
 
 
 		if (TargetSlot->SlotData.Type == EItemType::INVENTORY)
@@ -291,8 +285,6 @@ void UPlayerInventoryWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UIn
 	{
 		bool bUpdateWorldBagData = false;
 		bool bUpdateWorldBoxData = false;
-
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("SWAPDATA")));
 
 		SwapSlotData(DraggingSlot, TargetSlot);
 

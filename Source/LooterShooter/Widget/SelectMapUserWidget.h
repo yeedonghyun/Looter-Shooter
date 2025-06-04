@@ -4,7 +4,10 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
+#include <Components/TextBlock.h>
+
 #include "SelectMapUserWidget.generated.h"
+
 
 UCLASS()
 class LOOTERSHOOTER_API USelectMapUserWidget : public UUserWidget
@@ -66,6 +69,17 @@ private:
 
     UFUNCTION()
     void OnExitButtonUnhovered();
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    UTextBlock* WarningMessage;
+
+    UFUNCTION()
+    void ShowWarningMessage(FString fs);
+
+    FTimerHandle UpdateHandle;
+
+    UFUNCTION()
+    void ToggleWarningMessage(bool bActive);
 
 private:
     int MapIndex;

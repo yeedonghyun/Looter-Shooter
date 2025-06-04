@@ -835,7 +835,7 @@ void APlayerCharacter::ResetShoot()
         bIsStartFireBubble = false;
 
         FTimerHandle TimeHandle;
-        GetWorldTimerManager().SetTimer(TimeHandle, this, &APlayerCharacter::ResetBubble, 0.3f, false);
+        GetWorldTimerManager().SetTimer(TimeHandle, this, &APlayerCharacter::ResetBubble, 0.1f, false);
     }
     else {
         bShoot = false;
@@ -1200,6 +1200,11 @@ void APlayerCharacter::UpdateEscapeDuration(float duration)
 
     if (EscapeDuration >= EscapeTime + 1)
     {
+        USaveManager* SaveData = USaveManager::GetSaveInstance("Save1");
+
+        SaveData->PlayerHealth = Health;
+        SaveData->PlayerArmor = Armor;
+        USaveManager::SaveDataSet("Save1", SaveData);
         InventoryUI->SaveInventories();
     }
 }
@@ -1234,8 +1239,6 @@ void APlayerCharacter::GoToMainLevel()
 
 void APlayerCharacter::UpdateMagazine(int maxAmmo)
 {
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("UpdateMagazine")));
-
     MaxAmmo = maxAmmo;
     PlayerUI->SetMagazineText(MaxAmmo);
 }
