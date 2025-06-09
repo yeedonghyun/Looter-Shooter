@@ -56,7 +56,10 @@ public:
 	void SwapSlotData(UInventorySlot*& DraggingSlot, UInventorySlot*& TargetSlot);
 
 	void HandleSlotActionRequest(UInventorySlot* TargetSlot, ESlotActionType type, bool bActive);
+
+
 	virtual void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot);
+	//void HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot);
 
 	virtual void HandleSlotRightClickRequest(UInventorySlot* TargetSlot);
 
@@ -176,4 +179,5 @@ public:
 
 	float HealthTargetValue;
 	float ArmorTargetValue;
+
 };

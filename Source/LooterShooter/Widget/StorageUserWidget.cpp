@@ -320,25 +320,25 @@ void UStorageUserWidget::HandleSwapRequest(UInventorySlot* DraggingSlot, UInvent
 
 	}
 
-	else if (DraggingSlot->SlotData.Type == EItemType::AMMO && TargetSlot->SlotData.Type == EItemType::AMMO
-		)
-	{
-		int NeedAmmo = DraggingSlot->SlotData.MaxAmount - DraggingSlot->SlotData.Amount;
-		int maxBringable = FMath::Min(NeedAmmo, TargetSlot->SlotData.Amount);
+	//else if (DraggingSlot->SlotData.Type == EItemType::AMMO && TargetSlot->SlotData.Type == EItemType::AMMO
+	//	)
+	//{
+	//	int NeedAmmo = DraggingSlot->SlotData.MaxAmount - DraggingSlot->SlotData.Amount;
+	//	int maxBringable = FMath::Min(NeedAmmo, TargetSlot->SlotData.Amount);
 
-		DraggingSlot->SlotData.Amount += maxBringable;
-		TargetSlot->SlotData.Amount -= maxBringable;
+	//	DraggingSlot->SlotData.Amount += maxBringable;
+	//	TargetSlot->SlotData.Amount -= maxBringable;
 
-		DraggingSlot->ToggleSlot();
+	//	DraggingSlot->ToggleSlot();
 
-		if (TargetSlot->SlotData.Amount == 0)
-		{
-			TargetSlot->SlotData.bHaveItem = false;
-		}
+	//	if (TargetSlot->SlotData.Amount == 0)
+	//	{
+	//		TargetSlot->SlotData.bHaveItem = false;
+	//	}
 
-		TargetSlot->ToggleSlot();
+	//	TargetSlot->ToggleSlot();
 
-	}
+	//}
 
 	else
 	{
@@ -374,19 +374,48 @@ void UStorageUserWidget::MoveItemTradeInventory(UInventorySlot* TargetSlot)
 
 void UStorageUserWidget::HandleSlotRightClickRequest(UInventorySlot* TargetSlot)
 {
-	if (TargetSlot->SlotData.Type == EItemType::WEAPON && tradeType == ETradeType::NONE
-		&& (TargetSlot->UnderInventoryType == EUnderInventoryType::PLAYER || 
-			TargetSlot->UnderInventoryType == EUnderInventoryType::EQUIP ||
-			TargetSlot->UnderInventoryType == EUnderInventoryType::STORAGE)
-		)
+	if (TargetSlot->SlotData.Type == EItemType::WEAPON)
 	{
-		if (WeaponSlot)
+		if (TargetSlot->UnderInventoryType != EUnderInventoryType::TRADE && TargetSlot->UnderInventoryType != EUnderInventoryType::SHOP)
 		{
-			SwapSlotData(WeaponSlot, TargetSlot);
+			if (WeaponSlot)
+			{
+				SwapSlotData(WeaponSlot, TargetSlot);
+			}
 		}
 	}
 
-	else
+
+
+
+	//if (TargetSlot->SlotData.Type == EItemType::WEAPON)
+	//{
+	//	if (TargetSlot->UnderInventoryType == EUnderInventoryType::PLAYER ||
+	//		TargetSlot->UnderInventoryType == EUnderInventoryType::EQUIP ||
+	//		TargetSlot->UnderInventoryType == EUnderInventoryType::STORAGE)
+	//	{
+	//		if (WeaponSlot)
+	//		{
+	//			SwapSlotData(WeaponSlot, TargetSlot);
+	//		}
+	//	}
+	//}
+
+
+
+	//if (TargetSlot->SlotData.Type == EItemType::WEAPON && tradeType == ETradeType::NONE
+	//	&& (TargetSlot->UnderInventoryType == EUnderInventoryType::PLAYER || 
+	//		TargetSlot->UnderInventoryType == EUnderInventoryType::EQUIP ||
+	//		TargetSlot->UnderInventoryType == EUnderInventoryType::STORAGE)
+	//	)
+	//{
+	//	if (WeaponSlot)
+	//	{
+	//		SwapSlotData(WeaponSlot, TargetSlot);
+	//	}
+	//}
+
+	//else
 	{
 
 		switch (TargetSlot->UnderInventoryType)

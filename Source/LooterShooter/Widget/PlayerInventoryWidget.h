@@ -61,6 +61,7 @@ public:
 
 	int GetAmmo(int needAmmo);
 
+
 protected:
 
 

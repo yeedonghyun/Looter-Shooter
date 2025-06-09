@@ -65,6 +65,8 @@ void UInventoryWidgetBase::InitWidget()
 
 		if (SaveData->bEquipInventory)
 		{
+			bHaveEquipInventory = true;
+
 			FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *SaveData->EquipInventoryName, *SaveData->EquipInventoryName);
 
 			if (TSubclassOf<AItem_Inventory> ItemClass = LoadClass<AItem_Inventory>(nullptr, *FullPath))
@@ -348,10 +350,199 @@ void UInventoryWidgetBase::CreateClickOption()
 }
 
 
+
+
+
+
+
+
 void UInventoryWidgetBase::HandleSwapRequest(UInventorySlot* DraggingSlot, UInventorySlot* TargetSlot)
 {
 
+	//if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
+	//{
+	//	UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
+	//	UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
+
+	//	UVerticalBox* FromGrid = FromInventory->Grid;
+	//	UVerticalBox* ToGrid = ToInventory->Grid;
+
+	//	TArray<UWidget*> FromChildren = FromGrid->GetAllChildren();
+	//	TArray<UWidget*> ToChildren = ToGrid->GetAllChildren();
+
+	//	FromGrid->ClearChildren();
+	//	ToGrid->ClearChildren();
+
+	//	for (UWidget* Child : FromChildren)
+	//	{
+	//		ToGrid->AddChild(Child);
+	//	}
+	//	for (UWidget* Child : ToChildren)
+	//	{
+	//		FromGrid->AddChild(Child);
+	//	}
+
+	//	SwapSlotData(DraggingSlot, TargetSlot);
+	//}
+
+	//else if (DraggingSlot->SlotType != EItemType::INVENTORY && TargetSlot->SlotType == EItemType::INVENTORY)
+	//{
+	//	bool bHaveInventoryItem = false;
+
+	//	UItemInventory* inven = TargetSlot->GetTypedOuter<UItemInventory>();
+
+	//	if (inven->InventoryName == "Equip")
+	//	{
+	//		for (int32 i = 0; i < EquipInventoryArray.Num(); i++)
+	//		{
+	//			if (EquipInventoryArray[i]->SlotData.bHaveItem)
+	//			{
+	//				bHaveInventoryItem = true;
+	//				break;
+	//			}
+	//		}
+	//	}
+
+	//	if (bHaveInventoryItem)
+	//	{
+	//		if (InventoryWarningMessage)
+	//		{
+	//			ShowWarningMessage("Have Item in Bag");
+	//		}
+	//	}
+
+	//	else
+	//	{
+	//		UItemInventory* ToInventory = TargetSlot->GetTypedOuter<UItemInventory>();
+	//		UVerticalBox* ToGrid = ToInventory->Grid;
+	//		TArray<UWidget*> ToChildren = ToGrid->GetAllChildren();
+	//		ToGrid->ClearChildren();
+	//		SwapSlotData(DraggingSlot, TargetSlot);
+
+	//		if (ToInventory->ItemSlot->UnderInventoryType == EUnderInventoryType::WORLDBAG)
+	//		{
+	//			//DeleteWorldInventory();
+	//		}
+
+	//		bHaveEquipInventory = false;
+	//	}
+
+	//}
+
+	//else if (DraggingSlot->SlotType == EItemType::INVENTORY && TargetSlot->SlotType != EItemType::INVENTORY)
+	//{
+
+
+	//	if (TargetSlot->SlotData.Type == EItemType::INVENTORY)
+	//	{
+	//		UItemInventory* FromInventory = DraggingSlot->GetTypedOuter<UItemInventory>();
+	//		UVerticalBox* FromGrid = FromInventory->Grid;
+	//		TArray<UWidget*> FromChildren = FromGrid->GetAllChildren();
+	//		FromGrid->ClearChildren();
+
+	//		SwapSlotData(DraggingSlot, TargetSlot);
+
+	//		FString FullPath = FString::Printf(TEXT("/Game/BluePrint/Item/BP_Item_%s.BP_Item_%s_C"), *DraggingSlot->SlotData.Name, *DraggingSlot->SlotData.Name);
+
+	//		if (TSubclassOf<AItem_Inventory> ItemClass = LoadClass<AItem_Inventory>(nullptr, *FullPath))
+	//		{
+	//			AItem_Inventory* DefaultBag = ItemClass->GetDefaultObject<AItem_Inventory>();
+	//			CreateInventory(EquipInventoryArray, EquipInventory->Grid, DefaultBag->Width, DefaultBag->Height, EUnderInventoryType::EQUIP);
+	//			//EquipInventory->ItemSlot->SetSlotFromItem(DefaultBag->ItemData);
+	//			bHaveEquipInventory = true;
+	//		}
+	//	}
+
+	//}
+
+	//else if (DraggingSlot->SlotData.Type == EItemType::AMMO && TargetSlot->SlotData.Type == EItemType::AMMO)
+	//{
+	//	int NeedAmmo = DraggingSlot->SlotData.MaxAmount - DraggingSlot->SlotData.Amount;
+	//	int maxBringable = FMath::Min(NeedAmmo, TargetSlot->SlotData.Amount);
+
+	//	DraggingSlot->SlotData.Amount += maxBringable;
+	//	TargetSlot->SlotData.Amount -= maxBringable;
+
+	//	DraggingSlot->ToggleSlot();
+
+	//	if (TargetSlot->SlotData.Amount == 0)
+	//	{
+	//		TargetSlot->SlotData.bHaveItem = false;
+	//	}
+
+	//	TargetSlot->ToggleSlot();
+
+	//}
+
+
+
+	//else
+	//{
+	//	bool bUpdateWorldBagData = false;
+	//	bool bUpdateWorldBoxData = false;
+
+	//	SwapSlotData(DraggingSlot, TargetSlot);
+
+	//	if (DraggingSlot->UnderInventoryType != TargetSlot->UnderInventoryType)
+	//	{
+	//		TArray<UInventorySlot*>& DragArray = ReturnInventoryArray(DraggingSlot->UnderInventoryType);
+	//		TArray<UInventorySlot*>& TargetArray = ReturnInventoryArray(TargetSlot->UnderInventoryType);
+
+	//		//std::swap(DragArray, TargetArray);
+
+	//		if (DraggingSlot->UnderInventoryType == EUnderInventoryType::WORLDBAG)
+	//		{
+	//			bUpdateWorldBagData = true;
+	//		}
+
+	//		if (DraggingSlot->UnderInventoryType == EUnderInventoryType::WORLDBOX)
+	//		{
+	//			bUpdateWorldBoxData = true;
+	//		}
+
+	//		if (TargetSlot->UnderInventoryType == EUnderInventoryType::WORLDBAG)
+	//		{
+	//			bUpdateWorldBagData = true;
+	//		}
+
+	//		if (TargetSlot->UnderInventoryType == EUnderInventoryType::WORLDBOX)
+	//		{
+	//			bUpdateWorldBoxData = true;
+	//		}
+
+	//		//if (bUpdateWorldBagData)
+	//		//{
+	//		//	TArray<FSlotData>& Items = InventoryItem->savedItems;
+
+	//		//	for (int32 i = 0; i < WorldBagInventoryArray.Num(); i++)
+	//		//	{
+	//		//		Items[i] = WorldBagInventoryArray[i]->SlotData;
+	//		//	}
+	//		//}
+
+	//		//if (bUpdateWorldBoxData)
+	//		//{
+	//		//	TArray<FSlotData>& Items = InventoryItem->savedItems;
+
+	//		//	for (int32 i = 0; i < WorldBoxInventoryArray.Num(); i++)
+	//		//	{
+	//		//		Items[i] = WorldBoxInventoryArray[i]->SlotData;
+	//		//	}
+	//		//}
+
+	//	}
+
+	//}
+
+	//UpdateMagazine();
+	//SaveInventories();
+
+
 }
+
+
+
+
 
 void UInventoryWidgetBase::HandleSlotRightClickRequest(UInventorySlot* TargetSlot)
 {
